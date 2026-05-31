@@ -80,7 +80,10 @@ def check_permission(user, permission_field: str) -> bool:
 def dashboard(request: Request):
     user = require_user(request)
     if not check_permission(user, "can_view_dashboard"):
-        return RedirectResponse("/", status_code=403)
+        # Se funcionário sem acesso ao dashboard, redireciona para "Minha Conta"
+        if user["role"] == "funcionario":
+            return RedirectResponse("/minha-conta", status_code=302)
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     total_clients    = conn.execute("SELECT COUNT(*) FROM clients WHERE status='ativo'").fetchone()[0]
     total_revenue    = conn.execute("SELECT COALESCE(SUM(contract_value),0) FROM clients WHERE status='ativo'").fetchone()[0]
