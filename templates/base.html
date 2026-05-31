@@ -27,68 +27,104 @@
     </div>
     <ul class="sidebar-nav">
       <li class="nav-section">VISÃO GERAL</li>
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_dashboard %}
       <li><a href="/" class="{% if request.url.path == '/' %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-chart-line"></i><span>Dashboard</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_atividades %}
       <li><a href="/atividades" class="{% if '/atividades' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-clock-rotate-left"></i><span>Atividades</span>
       </a></li>
+      {% endif %}
 
       <li class="nav-section">COMERCIAL</li>
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_prospeccao %}
       <li><a href="/prospeccao" class="{% if '/prospeccao' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-map-location-dot"></i><span>Prospecção</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_pipeline %}
       <li><a href="/pipeline" class="{% if '/pipeline' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-filter"></i><span>Pipeline CRM</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_clientes %}
       <li><a href="/clientes" class="{% if '/clientes' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-users"></i><span>Clientes</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_financeiro %}
       <li><a href="/financeiro" class="{% if '/financeiro' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-wallet"></i><span>Financeiro</span>
       </a></li>
+      {% endif %}
 
       <li class="nav-section">INTELIGÊNCIA ARTIFICIAL</li>
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_chat %}
       <li><a href="/chat" class="{% if '/chat' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-comments"></i><span>Chat Assistant</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_ia %}
       <li><a href="/ia" class="{% if '/ia' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-wand-magic-sparkles"></i><span>IA — Copy & Imagem</span>
       </a></li>
+      {% endif %}
 
       <li class="nav-section">OPERAÇÕES</li>
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_relatorios %}
       <li><a href="/relatorios" class="{% if '/relatorios' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-file-pdf"></i><span>Relatórios</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_propostas %}
       <li><a href="/propostas" class="{% if '/propostas' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-file-contract"></i><span>Propostas</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_agendador %}
       <li><a href="/agendador" class="{% if '/agendador' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-calendar-check"></i><span>Agendador</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_projetos %}
       <li><a href="/projetos" class="{% if '/projetos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-briefcase"></i><span>Projetos</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_calendario %}
       <li><a href="/calendario" class="{% if '/calendario' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-calendar-days"></i><span>Calendário</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_copys %}
       <li><a href="/copys" class="{% if '/copys' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-pen-nib"></i><span>Copys</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_anuncios %}
       <li><a href="/anuncios" class="{% if '/anuncios' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-bullhorn"></i><span>Anúncios</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_proximos_passos %}
       <li><a href="/proximos-passos" class="{% if '/proximos-passos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-list-check"></i><span>Próximos Passos</span>
       </a></li>
+      {% endif %}
 
       <li class="nav-section">EMPRESA</li>
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_investimentos %}
       <li><a href="/investimentos" class="{% if '/investimentos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-coins"></i><span>Investimentos</span>
       </a></li>
+      {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_prolabore %}
       <li><a href="/prolabore" class="{% if '/prolabore' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-money-bill-wave"></i><span>Pró-Labore</span>
       </a></li>
+      {% endif %}
       {% if user.role == 'admin' %}
       <li><a href="/membros" class="{% if '/membros' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-users"></i><span>Membros</span>
@@ -97,6 +133,16 @@
         <i class="fa fa-user-shield"></i><span>Usuários</span>
       </a></li>
       {% endif %}
+      {% if user.role in ['admin', 'ceo'] %}
+      <li><a href="/ceo" class="{% if '/ceo' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-key"></i><span>Gerenciamento de Usuários</span>
+      </a></li>
+      {% endif %}
+
+      <li class="nav-section">CONTA</li>
+      <li><a href="/minha-conta" class="{% if '/minha-conta' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-user-circle"></i><span>Minha Conta</span>
+      </a></li>
     </ul>
     <div class="sidebar-user">
       <div class="user-avatar">{{ user.name[0]|upper }}</div>

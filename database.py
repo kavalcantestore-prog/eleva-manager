@@ -285,6 +285,30 @@ def init_db():
             created_by INTEGER,
             created_at TEXT DEFAULT (datetime('now','localtime'))
         );
+
+        CREATE TABLE IF NOT EXISTS user_permissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,
+            can_view_dashboard BOOLEAN DEFAULT 0,
+            can_view_atividades BOOLEAN DEFAULT 0,
+            can_view_prospeccao BOOLEAN DEFAULT 0,
+            can_view_pipeline BOOLEAN DEFAULT 0,
+            can_view_clientes BOOLEAN DEFAULT 0,
+            can_view_financeiro BOOLEAN DEFAULT 0,
+            can_view_chat BOOLEAN DEFAULT 0,
+            can_view_ia BOOLEAN DEFAULT 0,
+            can_view_relatorios BOOLEAN DEFAULT 0,
+            can_view_propostas BOOLEAN DEFAULT 0,
+            can_view_agendador BOOLEAN DEFAULT 0,
+            can_view_projetos BOOLEAN DEFAULT 0,
+            can_view_calendario BOOLEAN DEFAULT 0,
+            can_view_copys BOOLEAN DEFAULT 0,
+            can_view_anuncios BOOLEAN DEFAULT 0,
+            can_view_proximos_passos BOOLEAN DEFAULT 0,
+            can_view_investimentos BOOLEAN DEFAULT 0,
+            can_view_prolabore BOOLEAN DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
     """)
 
     row = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -294,6 +318,8 @@ def init_db():
             "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
             ("Admin", "admin@eleva.com", hashed, "admin"),
         )
+        admin_id = c.lastrowid
+        create_user_permissions(conn, admin_id, is_admin=True)
 
     conn.commit()
     conn.close()
@@ -308,6 +334,27 @@ def log_action(conn, user, action: str, entity_type: str, details: str = ""):
         )
     except Exception:
         pass
+
+
+def create_user_permissions(conn, user_id: int, is_admin: bool = False):
+    """Create permission record for a new user. Admin/CEO get all perms, others get none."""
+    if is_admin:
+        # Admin/CEO can view everything
+        conn.execute(
+            """INSERT INTO user_permissions (user_id, can_view_dashboard, can_view_atividades,
+            can_view_prospeccao, can_view_pipeline, can_view_clientes, can_view_financeiro,
+            can_view_chat, can_view_ia, can_view_relatorios, can_view_propostas,
+            can_view_agendador, can_view_projetos, can_view_calendario, can_view_copys,
+            can_view_anuncios, can_view_proximos_passos, can_view_investimentos, can_view_prolabore)
+            VALUES (?, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)""",
+            (user_id,),
+        )
+    else:
+        # Funcionários começam com zero perms (CEO habilita depois)
+        conn.execute(
+            """INSERT INTO user_permissions (user_id) VALUES (?)""",
+            (user_id,),
+        )
 
 
 def verify_password(plain: str, hashed: str) -> bool:

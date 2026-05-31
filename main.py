@@ -796,6 +796,209 @@ def usuario_deletar(request: Request, uid: int):
     return RedirectResponse("/usuarios", status_code=302)
 
 
+# ── CEO: Gerenciamento de Usuários e Permissões ──────────────────────────────
+
+@app.get("/ceo", response_class=HTMLResponse)
+def ceo_page(request: Request):
+    user = require_user(request)
+    if user["role"] not in ["admin", "ceo"]:
+        return RedirectResponse("/", status_code=302)
+    conn = get_db()
+    users = conn.execute("SELECT id,name,email,role,created_at FROM users ORDER BY name").fetchall()
+    conn.close()
+    return templates.TemplateResponse("ceo.html", {
+        "request": request,
+        "user": dict(user),
+        "users": [dict(u) for u in users]
+    })
+
+
+@app.post("/ceo/usuarios/novo")
+async def ceo_novo_usuario(request: Request):
+    user = require_user(request)
+    if user["role"] not in ["admin", "ceo"]:
+        return JSONResponse({"success": False, "error": "Permissão negada"}, status_code=403)
+
+    data = await request.json()
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip()
+    password = data.get("password", "").strip()
+
+    if not name or not email or not password or len(password) < 8:
+        return JSONResponse({"success": False, "error": "Dados inválidos"})
+
+    conn = get_db()
+    try:
+        from database import create_user_permissions
+        conn.execute(
+            "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+            (name, email, hash_password(password), "funcionario")
+        )
+        new_user_id = conn.cursor().lastrowid
+        create_user_permissions(conn, new_user_id, is_admin=False)
+        log_action(conn, user, "criou", "usuário funcionário", f"{name} ({email})")
+        conn.commit()
+        return JSONResponse({"success": True})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+@app.get("/ceo/usuarios/{uid}")
+def ceo_get_usuario(request: Request, uid: int):
+    user = require_user(request)
+    if user["role"] not in ["admin", "ceo"]:
+        return JSONResponse({"error": "Permissão negada"}, status_code=403)
+
+    conn = get_db()
+    usr = conn.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
+    perms = conn.execute("SELECT * FROM user_permissions WHERE user_id=?", (uid,)).fetchone()
+    conn.close()
+
+    if not usr:
+        return JSONResponse({"error": "Usuário não encontrado"}, status_code=404)
+
+    return JSONResponse({
+        "id": usr["id"],
+        "name": usr["name"],
+        "email": usr["email"],
+        "role": usr["role"],
+        "permissions": dict(perms) if perms else {}
+    })
+
+
+@app.post("/ceo/usuarios/{uid}/editar-permissoes")
+async def ceo_editar_permissoes(request: Request, uid: int):
+    user = require_user(request)
+    if user["role"] not in ["admin", "ceo"]:
+        return JSONResponse({"success": False, "error": "Permissão negada"}, status_code=403)
+
+    data = await request.json()
+    conn = get_db()
+
+    try:
+        # Atualiza apenas as permissões fornecidas
+        update_fields = []
+        for key, val in data.items():
+            if key.startswith("can_view_"):
+                update_fields.append(f"{key}=1")
+
+        if update_fields:
+            query = f"UPDATE user_permissions SET {', '.join(update_fields)} WHERE user_id=?"
+            conn.execute(query, (uid,))
+
+        # Reseta todas as outras permissões
+        all_perms = [
+            "can_view_dashboard", "can_view_atividades", "can_view_prospeccao",
+            "can_view_pipeline", "can_view_clientes", "can_view_financeiro",
+            "can_view_chat", "can_view_ia", "can_view_relatorios", "can_view_propostas",
+            "can_view_agendador", "can_view_projetos", "can_view_calendario",
+            "can_view_copys", "can_view_anuncios", "can_view_proximos_passos",
+            "can_view_investimentos", "can_view_prolabore"
+        ]
+        disabled = [p for p in all_perms if p not in data]
+        if disabled:
+            reset_query = f"UPDATE user_permissions SET {', '.join([f'{p}=0' for p in disabled])} WHERE user_id=?"
+            conn.execute(reset_query, (uid,))
+
+        conn.commit()
+        log_action(conn, user, "atualizou", "permissões de usuário", f"UID {uid}")
+        return JSONResponse({"success": True})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+@app.post("/ceo/usuarios/{uid}/reset-senha")
+async def ceo_reset_senha(request: Request, uid: int):
+    user = require_user(request)
+    if user["role"] not in ["admin", "ceo"]:
+        return JSONResponse({"success": False, "error": "Permissão negada"}, status_code=403)
+
+    data = await request.json()
+    new_password = data.get("new_password", "").strip()
+
+    if not new_password or len(new_password) < 8:
+        return JSONResponse({"success": False, "error": "Senha inválida (min 8 caracteres)"})
+
+    conn = get_db()
+    try:
+        conn.execute(
+            "UPDATE users SET password_hash=? WHERE id=?",
+            (hash_password(new_password), uid)
+        )
+        conn.commit()
+        log_action(conn, user, "resetou", "senha de usuário", f"UID {uid}")
+        return JSONResponse({"success": True})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+@app.post("/ceo/usuarios/{uid}/deletar")
+def ceo_deletar_usuario(request: Request, uid: int):
+    user = require_user(request)
+    if user["role"] not in ["admin", "ceo"] or user["id"] == uid:
+        return JSONResponse({"success": False, "error": "Não pode deletar a si mesmo"}, status_code=403)
+
+    conn = get_db()
+    try:
+        usr = conn.execute("SELECT name FROM users WHERE id=?", (uid,)).fetchone()
+        conn.execute("DELETE FROM users WHERE id=?", (uid,))
+        conn.commit()
+        log_action(conn, user, "deletou", "usuário", f"{usr['name'] if usr else 'unknown'}")
+        return JSONResponse({"success": True})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+# ── Minha Conta ──────────────────────────────────────────────────────────────
+
+@app.get("/minha-conta", response_class=HTMLResponse)
+def minha_conta_page(request: Request):
+    user = require_user(request)
+    return templates.TemplateResponse("minha-conta.html", {
+        "request": request,
+        "user": dict(user)
+    })
+
+
+@app.post("/minha-conta/trocar-senha")
+async def minha_conta_trocar_senha(request: Request):
+    user = require_user(request)
+    data = await request.json()
+
+    senha_atual = data.get("senha_atual", "")
+    senha_nova = data.get("senha_nova", "").strip()
+
+    if not senha_nova or len(senha_nova) < 8:
+        return JSONResponse({"success": False, "error": "Senha inválida (min 8 caracteres)"})
+
+    conn = get_db()
+    try:
+        usr = conn.execute("SELECT password_hash FROM users WHERE id=?", (user["id"],)).fetchone()
+
+        if not usr or not verify_password(senha_atual, usr["password_hash"]):
+            return JSONResponse({"success": False, "error": "Senha atual incorreta"})
+
+        conn.execute(
+            "UPDATE users SET password_hash=? WHERE id=?",
+            (hash_password(senha_nova), user["id"])
+        )
+        conn.commit()
+        log_action(conn, user, "alterou", "sua senha", "")
+        return JSONResponse({"success": True})
+    except Exception as e:
+        return JSONResponse({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
 # ── Chat Assistant com IA ─────────────────────────────────────────────────────
 
 @app.get("/chat", response_class=HTMLResponse)

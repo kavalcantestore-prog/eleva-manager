@@ -25,6 +25,14 @@ def get_current_user(request: Request):
 
     conn = get_db()
     user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+
+    # Carregar permissões do usuário
+    if user:
+        perms = conn.execute("SELECT * FROM user_permissions WHERE user_id = ?", (user_id,)).fetchone()
+        if perms:
+            user = dict(user)
+            user['permissions'] = dict(perms)
+
     conn.close()
     return user
 

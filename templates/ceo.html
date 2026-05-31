@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Gerenciamento de Usuários — CEO{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h2><i class="fa fa-users-cog"></i> Gerenciamento de Usuários</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-usuario')"><i class="fa fa-plus"></i> Novo Usuário</button>
+</div>
+
+<!-- Tabela de Usuários -->
+<div class="card">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Função</th>
+        <th>Criado em</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td><strong>{{ user.name }}</strong></td>
+        <td>{{ user.email }}</td>
+        <td><span class="badge" style="background: {% if user.role == 'admin' %}#ff6b6b{% else %}#4a90e2{% endif %};">{{ user.role }}</span></td>
+        <td>{{ user.created_at[:10] }}</td>
+        <td>
+          {% if user.role != 'admin' %}
+          <button class="btn btn-sm btn-primary" onclick="editarPermissoes({{ user.id }}, '{{ user.name }}')">
+            <i class="fa fa-lock"></i> Permissões
+          </button>
+          <button class="btn btn-sm btn-warning" onclick="resetarSenha({{ user.id }}, '{{ user.name }}')">
+            <i class="fa fa-key"></i> Reset Senha
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="deletarUsuario({{ user.id }}, '{{ user.name }}')">
+            <i class="fa fa-trash"></i> Deletar
+          </button>
+          {% else %}
+          <span class="text-muted">Admin</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal: Novo Usuário -->
+<div id="modal-novo-usuario" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fa fa-user-plus"></i> Novo Usuário</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form onsubmit="criarUsuario(event)">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" id="novo-nome" placeholder="Ex: João Silva" required/>
+      </div>
+      <div class="form-group">
+        <label>Email *</label>
+        <input type="email" id="novo-email" placeholder="joao@empresa.com" required/>
+      </div>
+      <div class="form-group">
+        <label>Senha *</label>
+        <input type="password" id="novo-senha" placeholder="Min 8 caracteres" required/>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Criar Usuário</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Editar Permissões -->
+<div id="modal-editar-perms" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fa fa-lock"></i> Editar Permissões — <span id="perm-usuario-nome">-</span></h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form onsubmit="salvarPermissoes(event)">
+      <input type="hidden" id="perm-user-id"/>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-height: 400px; overflow-y: auto;">
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_dashboard"/>
+          <span style="margin-left: 0.5rem;">Dashboard</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_atividades"/>
+          <span style="margin-left: 0.5rem;">Atividades</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_prospeccao"/>
+          <span style="margin-left: 0.5rem;">Prospecção</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_pipeline"/>
+          <span style="margin-left: 0.5rem;">Pipeline CRM</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_clientes"/>
+          <span style="margin-left: 0.5rem;">Clientes</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_financeiro"/>
+          <span style="margin-left: 0.5rem;">Financeiro</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_chat"/>
+          <span style="margin-left: 0.5rem;">Chat Assistant</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_ia"/>
+          <span style="margin-left: 0.5rem;">IA — Copy & Imagem</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_relatorios"/>
+          <span style="margin-left: 0.5rem;">Relatórios</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_propostas"/>
+          <span style="margin-left: 0.5rem;">Propostas</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_agendador"/>
+          <span style="margin-left: 0.5rem;">Agendador</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_projetos"/>
+          <span style="margin-left: 0.5rem;">Projetos</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_calendario"/>
+          <span style="margin-left: 0.5rem;">Calendário</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_copys"/>
+          <span style="margin-left: 0.5rem;">Copys</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_anuncios"/>
+          <span style="margin-left: 0.5rem;">Anúncios</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_proximos_passos"/>
+          <span style="margin-left: 0.5rem;">Próximos Passos</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_investimentos"/>
+          <span style="margin-left: 0.5rem;">Investimentos</span>
+        </label>
+        <label style="display: flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" name="perms" value="can_view_prolabore"/>
+          <span style="margin-left: 0.5rem;">Pró-Labore</span>
+        </label>
+      </div>
+
+      <div class="modal-footer" style="margin-top: 1rem;">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Permissões</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: left; padding: 1rem; border-bottom: 2px solid var(--border); background: var(--bg3); }
+.table td { padding: 1rem; border-bottom: 1px solid var(--border); }
+.table tbody tr:hover { background: var(--bg3); }
+.badge { display: inline-block; padding: 0.4rem 0.8rem; border-radius: 12px; color: white; font-size: 0.85rem; font-weight: 600; }
+.text-muted { color: var(--muted); }
+</style>
+
+<script>
+function criarUsuario(event) {
+  event.preventDefault();
+  const nome = document.getElementById('novo-nome').value;
+  const email = document.getElementById('novo-email').value;
+  const senha = document.getElementById('novo-senha').value;
+
+  if (senha.length < 8) {
+    alert('Senha deve ter pelo menos 8 caracteres');
+    return;
+  }
+
+  fetch('/ceo/usuarios/novo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: nome, email: email, password: senha })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert('Usuário criado! Agora configure as permissões.');
+      location.reload();
+    } else {
+      alert('Erro: ' + d.error);
+    }
+  });
+}
+
+function editarPermissoes(uid, nome) {
+  document.getElementById('perm-user-id').value = uid;
+  document.getElementById('perm-usuario-nome').textContent = nome;
+
+  fetch(`/ceo/usuarios/${uid}`)
+    .then(r => r.json())
+    .then(d => {
+      const checkboxes = document.querySelectorAll('input[name="perms"]');
+      checkboxes.forEach(cb => {
+        cb.checked = d.permissions[cb.value] === 1;
+      });
+      openModal('modal-editar-perms');
+    });
+}
+
+function salvarPermissoes(event) {
+  event.preventDefault();
+  const uid = document.getElementById('perm-user-id').value;
+  const checkboxes = document.querySelectorAll('input[name="perms"]:checked');
+  const perms = {};
+  checkboxes.forEach(cb => perms[cb.value] = 1);
+
+  fetch(`/ceo/usuarios/${uid}/editar-permissoes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(perms)
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.success ? 'Permissões salvas!' : 'Erro: ' + d.error);
+    if (d.success) location.reload();
+  });
+}
+
+function resetarSenha(uid, nome) {
+  if (!confirm(`Resetar senha de ${nome}?`)) return;
+
+  const novaSenha = prompt('Digite a nova senha:');
+  if (!novaSenha || novaSenha.length < 8) {
+    alert('Senha inválida (min 8 caracteres)');
+    return;
+  }
+
+  fetch(`/ceo/usuarios/${uid}/reset-senha`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ new_password: novaSenha })
+  })
+  .then(r => r.json())
+  .then(d => {
+    alert(d.success ? 'Senha resetada!' : 'Erro: ' + d.error);
+  });
+}
+
+function deletarUsuario(uid, nome) {
+  if (!confirm(`DELETAR usuário ${nome}? Essa ação é IRREVERSÍVEL!`)) return;
+
+  fetch(`/ceo/usuarios/${uid}/deletar`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      alert(d.success ? 'Usuário deletado!' : 'Erro: ' + d.error);
+      if (d.success) location.reload();
+    });
+}
+
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+</script>
+{% endblock %}
