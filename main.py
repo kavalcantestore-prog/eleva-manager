@@ -338,8 +338,23 @@ def pipeline_page(request: Request):
 
 
 @app.post("/pipeline/novo")
-def pipeline_novo(request: Request, contact_name: str = Form(...), company: str = Form(""), phone: str = Form(""), email: str = Form(""), service_type: str = Form(""), stage: str = Form("prospecto"), value: float = Form(0), responsible: str = Form(""), notes: str = Form("")):
+async def pipeline_novo(request: Request):
     user = require_user(request)
+    form = await request.form()
+
+    contact_name = form.get("contact_name", "")
+    company = form.get("company", "")
+    phone = form.get("phone", "")
+    email = form.get("email", "")
+    stage = form.get("stage", "prospecto")
+    value = float(form.get("value", 0) or 0)
+    responsible = form.get("responsible", "")
+    notes = form.get("notes", "")
+
+    # Pega múltiplos serviços selecionados
+    services = form.getlist("services")
+    service_type = " | ".join(services) if services else ""
+
     conn = get_db()
     conn.execute("INSERT INTO pipeline (contact_name,company,phone,email,service_type,stage,value,responsible,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)", (contact_name,company,phone,email,service_type,stage,value,responsible,notes,user["id"]))
     log_action(conn, user, "criou", "pipeline", f"{contact_name} — {company} ({stage})")
