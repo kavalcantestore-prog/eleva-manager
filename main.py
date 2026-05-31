@@ -1192,10 +1192,12 @@ def prospeccao_page(request: Request):
     conn = get_db()
     campaigns = conn.execute("SELECT * FROM prospection_campaigns ORDER BY created_at DESC").fetchall()
     conn.close()
+    google_maps_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
     return templates.TemplateResponse("prospeccao.html", {
         "request": request,
         "user": dict(user),
         "campaigns": [dict(c) for c in campaigns],
+        "google_maps_key": google_maps_key,
     })
 
 
