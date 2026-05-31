@@ -90,67 +90,55 @@
         <div class="form-group"><label>E-mail</label><input type="email" name="email"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Serviços</label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Tráfego Pago" style="margin-right: 0.5rem;"/>
-              Tráfego Pago
+        <div class="form-group" style="grid-column: 1/-1;"><label>Serviços *</label>
+          <div class="services-grid">
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Tráfego Pago"/>
+              <span>Tráfego Pago</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Social Media" style="margin-right: 0.5rem;"/>
-              Social Media
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Gestão de Site"/>
+              <span>Gestão de Site</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Site" style="margin-right: 0.5rem;"/>
-              Site
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Landing Page"/>
+              <span>Landing Page</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="E-commerce" style="margin-right: 0.5rem;"/>
-              E-commerce
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Automação"/>
+              <span>Automação</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Copy" style="margin-right: 0.5rem;"/>
-              Copy
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="IA"/>
+              <span>IA</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Planejamento" style="margin-right: 0.5rem;"/>
-              Planejamento
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Branding"/>
+              <span>Branding</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="IA" style="margin-right: 0.5rem;"/>
-              IA
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Social Media"/>
+              <span>Social Media</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Consultoria" style="margin-right: 0.5rem;"/>
-              Consultoria
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Consultoria"/>
+              <span>Consultoria</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Branding" style="margin-right: 0.5rem;"/>
-              Branding
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="E-commerce"/>
+              <span>E-commerce</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="SEO" style="margin-right: 0.5rem;"/>
-              SEO
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="SEO"/>
+              <span>SEO</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Email Marketing" style="margin-right: 0.5rem;"/>
-              Email Marketing
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="Email Marketing"/>
+              <span>Email Marketing</span>
             </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="CRM" style="margin-right: 0.5rem;"/>
-              CRM
-            </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Gestão de Site" style="margin-right: 0.5rem;"/>
-              Gestão de Site
-            </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Automação" style="margin-right: 0.5rem;"/>
-              Automação
-            </label>
-            <label style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" name="services" value="Pacote Completo" style="margin-right: 0.5rem;"/>
-              Pacote Completo
+            <label class="service-pill">
+              <input type="checkbox" name="services" value="CRM"/>
+              <span>CRM</span>
             </label>
           </div>
         </div>
@@ -172,4 +160,43 @@
     </form>
   </div>
 </div>
+
+<style>
+.services-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.service-pill {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.service-pill input {
+  display: none;
+}
+
+.service-pill span {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border: 2px solid var(--gold);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--gold);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.service-pill input:checked + span {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.service-pill:hover span {
+  background: rgba(201,160,54,.1);
+}
+</style>
 {% endblock %}
