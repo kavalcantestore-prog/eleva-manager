@@ -63,11 +63,24 @@ def logout(request: Request):
     return response
 
 
+# ── Permission Validation Helper ──────────────────────────────────────────────
+
+def check_permission(user, permission_field: str) -> bool:
+    """Check if user has permission to view a module. Admin/CEO always have access."""
+    if user["role"] in ["admin", "ceo"]:
+        return True
+    if "permissions" not in user:
+        return False
+    return bool(user["permissions"].get(permission_field, 0))
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_dashboard"):
+        return RedirectResponse("/", status_code=403)
     conn = get_db()
     total_clients    = conn.execute("SELECT COUNT(*) FROM clients WHERE status='ativo'").fetchone()[0]
     total_revenue    = conn.execute("SELECT COALESCE(SUM(contract_value),0) FROM clients WHERE status='ativo'").fetchone()[0]
@@ -107,6 +120,8 @@ def dashboard(request: Request):
 @app.get("/clientes", response_class=HTMLResponse)
 def clientes_page(request: Request, q: str = ""):
     user = require_user(request)
+    if not check_permission(user, "can_view_clientes"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     if q:
         rows = conn.execute("SELECT c.*, u.name as creator FROM clients c LEFT JOIN users u ON c.created_by=u.id WHERE c.name LIKE ? OR c.company LIKE ? OR c.email LIKE ? ORDER BY c.created_at DESC", (f"%{q}%",f"%{q}%",f"%{q}%")).fetchall()
@@ -153,6 +168,8 @@ def cliente_deletar(request: Request, cid: int):
 @app.get("/investimentos", response_class=HTMLResponse)
 def investimentos_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_investimentos"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     rows = conn.execute("SELECT i.*, u.name as creator FROM investments i LEFT JOIN users u ON i.created_by=u.id ORDER BY i.date DESC").fetchall()
     total = conn.execute("SELECT COALESCE(SUM(value),0) FROM investments").fetchone()[0]
@@ -188,6 +205,8 @@ def investimento_deletar(request: Request, iid: int):
 @app.get("/prolabore", response_class=HTMLResponse)
 def prolabore_page(request: Request, year: int = CURRENT_YEAR):
     user = require_user(request)
+    if not check_permission(user, "can_view_prolabore"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     rows = conn.execute("SELECT * FROM prolabore WHERE year=? ORDER BY month DESC, ceo_name", (year,)).fetchall()
     total_year = conn.execute("SELECT COALESCE(SUM(value),0) FROM prolabore WHERE year=?", (year,)).fetchone()[0]
@@ -231,6 +250,8 @@ def prolabore_deletar(request: Request, pid: int):
 @app.get("/anuncios", response_class=HTMLResponse)
 def anuncios_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_anuncios"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     rows = conn.execute("SELECT a.*, u.name as creator FROM ads a LEFT JOIN users u ON a.created_by=u.id ORDER BY a.created_at DESC").fetchall()
     total_budget = conn.execute("SELECT COALESCE(SUM(budget),0) FROM ads").fetchone()[0]
@@ -276,6 +297,8 @@ def anuncio_deletar(request: Request, aid: int):
 @app.get("/proximos-passos", response_class=HTMLResponse)
 def proximos_passos_page(request: Request, status_filter: str = ""):
     user = require_user(request)
+    if not check_permission(user, "can_view_proximos_passos"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     if status_filter:
         rows = conn.execute("SELECT n.*, u.name as creator FROM next_steps n LEFT JOIN users u ON n.created_by=u.id WHERE n.status=? ORDER BY CASE n.priority WHEN 'alta' THEN 1 WHEN 'media' THEN 2 ELSE 3 END, n.deadline", (status_filter,)).fetchall()
@@ -326,6 +349,8 @@ STAGES_LABEL = {"prospecto": "Prospecto", "negociacao": "Negociação", "propost
 @app.get("/pipeline", response_class=HTMLResponse)
 def pipeline_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_pipeline"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     rows = conn.execute("SELECT p.*, u.name as creator FROM pipeline p LEFT JOIN users u ON p.created_by=u.id ORDER BY p.created_at DESC").fetchall()
     conn.close()
@@ -389,6 +414,8 @@ def pipeline_deletar(request: Request, pid: int):
 @app.get("/projetos", response_class=HTMLResponse)
 def projetos_page(request: Request, status_filter: str = ""):
     user = require_user(request)
+    if not check_permission(user, "can_view_projetos"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     if status_filter:
         rows = conn.execute("SELECT p.*, u.name as creator FROM projects p LEFT JOIN users u ON p.created_by=u.id WHERE p.status=? ORDER BY p.deadline", (status_filter,)).fetchall()
@@ -474,6 +501,8 @@ def projeto_deletar(request: Request, pid: int):
 @app.get("/financeiro", response_class=HTMLResponse)
 def financeiro_page(request: Request, type_filter: str = ""):
     user = require_user(request)
+    if not check_permission(user, "can_view_financeiro"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     if type_filter:
         rows = conn.execute("SELECT f.*, u.name as creator FROM financial f LEFT JOIN users u ON f.created_by=u.id WHERE f.type=? ORDER BY f.due_date DESC", (type_filter,)).fetchall()
@@ -538,6 +567,8 @@ def financeiro_deletar(request: Request, fid: int):
 def calendario_index(request: Request):
     """Lista todos os clientes com seus calendários."""
     user = require_user(request)
+    if not check_permission(user, "can_view_calendario"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     clients = conn.execute("SELECT * FROM clients WHERE status='ativo' ORDER BY name").fetchall()
     # Count posts per client this month
@@ -647,6 +678,8 @@ def calendario_deletar(request: Request, pid: int, client_id: int = Form(...), y
 @app.get("/copys", response_class=HTMLResponse)
 def copys_page(request: Request, q: str = "", copy_type: str = ""):
     user = require_user(request)
+    if not check_permission(user, "can_view_copys"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     base = "SELECT cp.*, u.name as creator FROM copies cp LEFT JOIN users u ON cp.created_by=u.id"
     params: list = []
@@ -703,6 +736,8 @@ def copy_deletar(request: Request, cid: int):
 @app.get("/atividades", response_class=HTMLResponse)
 def atividades_page(request: Request, ceo_filter: str = "", entity_filter: str = ""):
     user = require_user(request)
+    if not check_permission(user, "can_view_atividades"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     base = "SELECT * FROM activity_log"
     params: list = []; wheres = []
@@ -1004,6 +1039,8 @@ async def minha_conta_trocar_senha(request: Request):
 @app.get("/chat", response_class=HTMLResponse)
 def chat_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_chat"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     messages = conn.execute(
         "SELECT * FROM chat_messages WHERE user_id=? ORDER BY created_at DESC LIMIT 50",
@@ -1088,6 +1125,8 @@ Responda de forma amigável, prática e acionável. Mantenha as respostas concis
 @app.get("/ia", response_class=HTMLResponse)
 def ia_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_ia"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     clients = conn.execute("SELECT id, name FROM clients WHERE status='ativo' ORDER BY name").fetchall()
     conn.close()
@@ -1220,6 +1259,8 @@ def ia_salvar_copy(
 @app.get("/relatorios", response_class=HTMLResponse)
 def relatorios_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_relatorios"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     reports = conn.execute("SELECT * FROM reports WHERE created_by=? OR client_id IN (SELECT id FROM clients) ORDER BY created_at DESC", (user["id"],)).fetchall()
     clients = conn.execute("SELECT id, name FROM clients WHERE status='ativo' ORDER BY name").fetchall()
@@ -1263,6 +1304,8 @@ def relatorios_enviar(request: Request, rid: int, client_email: str = Form("")):
 @app.get("/propostas", response_class=HTMLResponse)
 def propostas_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_propostas"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     proposals = conn.execute("SELECT * FROM proposals ORDER BY created_at DESC").fetchall()
     clients = conn.execute("SELECT id, name FROM clients WHERE status='ativo' ORDER BY name").fetchall()
@@ -1310,6 +1353,8 @@ def propostas_status(request: Request, pid: int, status: str = Form(...)):
 @app.get("/agendador", response_class=HTMLResponse)
 def agendador_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_agendador"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     posts = conn.execute("SELECT * FROM scheduled_posts ORDER BY scheduled_for ASC").fetchall()
     clients = conn.execute("SELECT id, name FROM clients WHERE status='ativo' ORDER BY name").fetchall()
@@ -1407,6 +1452,8 @@ def membros_deletar(request: Request, mid: int):
 @app.get("/prospeccao", response_class=HTMLResponse)
 def prospeccao_page(request: Request):
     user = require_user(request)
+    if not check_permission(user, "can_view_prospeccao"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     conn = get_db()
     campaigns = conn.execute("SELECT * FROM prospection_campaigns ORDER BY created_at DESC").fetchall()
     conn.close()
