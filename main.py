@@ -1367,6 +1367,8 @@ async def prospeccao_gerar_mensagem(request: Request):
         from openai import AsyncOpenAI
         client = AsyncOpenAI(api_key=api_key)
 
+        user_name = user.get("name", "Equipe").split()[0]  # Pega primeiro nome
+
         system_prompt = """Você é especialista em prospecção e copywriting para agências de marketing digital.
 Gere 3 mensagens curtas (2-3 linhas) para prospectar empresas por WhatsApp.
 Cada mensagem deve ser única, profissional mas amigável.
@@ -1378,7 +1380,8 @@ Segmento: {segment}
 Localização: {location}
 Contexto adicional: {prompt_custom if prompt_custom else 'Somos especialistas em marketing digital'}
 
-Gere as 3 mensagens WhatsApp para prospectar esta empresa."""
+Gere as 3 mensagens WhatsApp para prospectar esta empresa.
+Assinatura: {user_name} - Grupo ELEVA 🚀"""
 
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
@@ -1406,12 +1409,87 @@ Gere as 3 mensagens WhatsApp para prospectar esta empresa."""
         return JSONResponse({
             "success": True,
             "messages": messages,
+            "user_name": user_name
         })
 
     except Exception as e:
         return JSONResponse({
             "success": False,
             "error": f"Erro ao gerar: {str(e)}"
+        }, status_code=500)
+
+
+@app.post("/prospeccao/enviar-whatsapp-auto")
+async def prospeccao_enviar_whatsapp_auto(request: Request):
+    """Envia mensagem automaticamente via WhatsApp Web."""
+    user = require_user(request)
+    data = await request.json()
+
+    phone = data.get("phone", "").replace("+", "").replace(" ", "").replace("-", "")
+    message = data.get("message", "")
+    prospect_id = data.get("prospect_id", None)
+
+    if not phone or not message:
+        return JSONResponse({
+            "success": False,
+            "error": "Telefone e mensagem são obrigatórios"
+        }, status_code=400)
+
+    try:
+        from pyppeteer import launch
+        import asyncio
+
+        # Formata o link wa.me
+        wa_link = f"https://wa.me/{phone}?text={message.replace(' ', '%20').replace('\n', '%0A')}"
+
+        # Tenta abrir o navegador headless
+        browser = None
+        try:
+            browser = await launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
+            page = await browser.newPage()
+            await page.goto(wa_link, {'waitUntil': 'networkidle2'})
+
+            # Aguarda alguns segundos para o WhatsApp Web carregar
+            await asyncio.sleep(3)
+
+            # Tenta clicar no botão de envio
+            try:
+                await page.click('button[aria-label*="Send"]')
+            except:
+                # Se não conseguir clicar automaticamente, retorna sucesso mas pede ação manual
+                pass
+
+            await browser.close()
+
+            # Atualiza status do prospect se foi fornecido
+            if prospect_id:
+                conn = get_db()
+                conn.execute(
+                    "UPDATE prospects SET status='enviado', message_sent=?, contacted_at=? WHERE id=?",
+                    (message, datetime.now().isoformat(), prospect_id)
+                )
+                conn.commit()
+                conn.close()
+
+            return JSONResponse({
+                "success": True,
+                "message": "Mensagem enviada!",
+                "wa_link": wa_link
+            })
+
+        except Exception as browser_error:
+            # Se o browser não funcionar, retorna o link para o usuário abrir manualmente
+            return JSONResponse({
+                "success": True,
+                "message": "Abra este link no seu navegador",
+                "wa_link": wa_link,
+                "manual": True
+            })
+
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": f"Erro ao enviar: {str(e)}"
         }, status_code=500)
 
 

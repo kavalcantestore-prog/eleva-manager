@@ -153,6 +153,28 @@
   </div>
 </div>
 
+<!-- Modal Escolher Método de Envio -->
+<div id="modal-escolher-envio" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fa fa-whatsapp"></i> Como Deseja Enviar?</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <div style="padding: 2rem; text-align: center;">
+      <button type="button" class="btn btn-primary btn-block" style="margin-bottom: 1rem; padding: 1rem;" onclick="abrirQRCode()">
+        <i class="fa fa-qrcode"></i><br/>
+        <strong>QR Code</strong><br/>
+        <small>Escanear com celular</small>
+      </button>
+      <button type="button" class="btn btn-primary btn-block" style="padding: 1rem;" onclick="enviarAutomatico()">
+        <i class="fa fa-paper-plane"></i><br/>
+        <strong>Enviar Automaticamente</strong><br/>
+        <small>Via WhatsApp Web no PC</small>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal WhatsApp QR Code -->
 <div id="modal-whatsapp-qr" class="modal">
   <div class="modal-box modal-center">

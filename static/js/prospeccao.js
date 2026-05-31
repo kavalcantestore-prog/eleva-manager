@@ -221,7 +221,7 @@ function selecionarMensagem(element, message) {
   selectedMessage = message;
 }
 
-// Send via WhatsApp
+// Send via WhatsApp - Show options
 function enviarWhatsApp() {
   if (!selectedMessage) {
     alert('Selecione uma mensagem primeiro');
@@ -233,7 +233,12 @@ function enviarWhatsApp() {
     return;
   }
 
-  // Exibir QR Code
+  closeModal('modal-gerar-mensagem');
+  openModal('modal-escolher-envio');
+}
+
+// Open QR Code modal
+function abrirQRCode() {
   const qrContainer = document.getElementById('qr-code');
   qrContainer.innerHTML = '';
 
@@ -249,8 +254,51 @@ function enviarWhatsApp() {
     <em>${selectedMessage}</em>
   `;
 
-  closeModal('modal-gerar-mensagem');
+  closeModal('modal-escolher-envio');
   openModal('modal-whatsapp-qr');
+}
+
+// Send automatically via WhatsApp Web
+async function enviarAutomatico() {
+  if (!selectedMessage || !selectedProspect) {
+    alert('Erro ao enviar mensagem');
+    return;
+  }
+
+  try {
+    const response = await fetch('/prospeccao/enviar-whatsapp-auto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: selectedProspect.whatsapp,
+        message: selectedMessage,
+        prospect_id: selectedProspect.id
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      closeModal('modal-escolher-envio');
+
+      if (data.wa_link && data.manual) {
+        // Browser automation não funcionou, abrir link manualmente
+        window.open(data.wa_link, '_blank');
+        alert('O WhatsApp Web foi aberto. Confirme o envio da mensagem.');
+      } else {
+        alert('Mensagem enviada automaticamente!');
+      }
+
+      // Atualizar contador
+      document.getElementById('total-sent').textContent =
+        parseInt(document.getElementById('total-sent').textContent) + 1;
+    } else {
+      alert('Erro: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Erro:', error);
+    alert('Erro ao enviar mensagem');
+  }
 }
 
 // Copy message to clipboard
