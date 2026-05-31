@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Projetos — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-briefcase"></i> Projetos</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-proj')"><i class="fa fa-plus"></i> Novo Projeto</button>
+</div>
+
+<div class="toolbar">
+  <div class="filter-tabs">
+    <a href="/projetos" class="tab {% if not status_filter %}active{% endif %}">Todos <span class="count">{{ count_map.values()|sum }}</span></a>
+    <a href="/projetos?status_filter=em_andamento" class="tab {% if status_filter=='em_andamento' %}active{% endif %}">Em andamento <span class="count">{{ count_map.get('em_andamento',0) }}</span></a>
+    <a href="/projetos?status_filter=pendente" class="tab {% if status_filter=='pendente' %}active{% endif %}">Pendente <span class="count">{{ count_map.get('pendente',0) }}</span></a>
+    <a href="/projetos?status_filter=concluido" class="tab {% if status_filter=='concluido' %}active{% endif %}">Concluídos <span class="count">{{ count_map.get('concluido',0) }}</span></a>
+  </div>
+</div>
+
+{% if projects %}
+<div class="projects-grid">
+  {% for p in projects %}
+  <div class="project-card status-border-{{ p.status }}">
+    <div class="project-card-header">
+      <div>
+        <div class="project-title">{{ p.title }}</div>
+        {% if p.client_name %}<div class="project-client"><i class="fa fa-user"></i> {{ p.client_name }}</div>{% endif %}
+      </div>
+      <span class="badge badge-{{ p.status }}">{{ p.status|replace('_',' ') }}</span>
+    </div>
+    {% if p.service_type %}<div class="project-service"><span class="tag">{{ p.service_type }}</span></div>{% endif %}
+    <div class="project-meta">
+      {% if p.responsible %}<span><i class="fa fa-user-tie"></i> {{ p.responsible }}</span>{% endif %}
+      {% if p.deadline %}<span><i class="fa fa-calendar"></i> {{ p.deadline }}</span>{% endif %}
+      <span class="creator-badge"><i class="fa fa-pen"></i> {{ p.creator or '—' }}</span>
+    </div>
+    <div class="project-actions">
+      <a href="/projetos/{{ p.id }}" class="btn btn-sm btn-ghost"><i class="fa fa-eye"></i> Ver tarefas</a>
+      <form method="post" action="/projetos/{{ p.id }}/status" style="display:inline">
+        <select name="status" onchange="this.form.submit()" class="select-inline">
+          <option value="pendente" {% if p.status=='pendente' %}selected{% endif %}>Pendente</option>
+          <option value="em_andamento" {% if p.status=='em_andamento' %}selected{% endif %}>Em andamento</option>
+          <option value="concluido" {% if p.status=='concluido' %}selected{% endif %}>Concluído</option>
+        </select>
+      </form>
+      <form method="post" action="/projetos/{{ p.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover projeto?')">
+        <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-briefcase"></i><p>Nenhum projeto encontrado.</p></div>
+{% endif %}
+
+<!-- Modal Novo Projeto -->
+<div id="modal-novo-proj" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Novo Projeto</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/projetos/novo">
+      <div class="form-group"><label>Título *</label><input name="title" required/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label>
+          <select name="client_id">
+            <option value="">Selecione…</option>
+            {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>Serviço</label>
+          <select name="service_type">
+            <option value="">Selecione…</option>
+            <option>Tráfego Pago</option><option>Social Media</option><option>Site</option>
+            <option>E-commerce</option><option>Copy</option><option>Planejamento</option><option>Estratégia</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Início</label><input type="date" name="start_date"/></div>
+        <div class="form-group"><label>Prazo</label><input type="date" name="deadline"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Responsável</label><input name="responsible"/></div>
+        <div class="form-group"><label>Status</label>
+          <select name="status">
+            <option value="em_andamento">Em andamento</option>
+            <option value="pendente">Pendente</option>
+            <option value="concluido">Concluído</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Observações</label><textarea name="notes" rows="2"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

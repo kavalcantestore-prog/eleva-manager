@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Investimentos — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-coins"></i> Investimentos</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-inv')">
+    <i class="fa fa-plus"></i> Novo Investimento
+  </button>
+</div>
+
+<div class="kpi-grid small">
+  <div class="kpi-card purple">
+    <div class="kpi-icon"><i class="fa fa-coins"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(total)|replace(".",",") }}</span>
+      <span class="kpi-label">Total Investido</span>
+    </div>
+  </div>
+  {% for cat in by_category %}
+  <div class="kpi-card blue">
+    <div class="kpi-icon"><i class="fa fa-tag"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(cat.total)|replace(".",",") }}</span>
+      <span class="kpi-label">{{ cat.category }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if investments %}
+<div class="table-wrapper">
+  <table class="table">
+    <thead>
+      <tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Data</th><th>Observações</th><th>Ações</th></tr>
+    </thead>
+    <tbody>
+      {% for inv in investments %}
+      <tr>
+        <td><strong>{{ inv.description }}</strong></td>
+        <td><span class="tag">{{ inv.category }}</span></td>
+        <td class="money">R$ {{ "%.2f"|format(inv.value)|replace(".",",") }}</td>
+        <td>{{ inv.date or '—' }}</td>
+        <td class="muted">{{ inv.notes or '—' }}</td>
+        <td class="actions">
+          <form method="post" action="/investimentos/{{ inv.id }}/deletar" style="display:inline"
+                onsubmit="return confirm('Remover investimento?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-coins"></i><p>Nenhum investimento registrado.</p></div>
+{% endif %}
+
+<!-- Modal Novo Investimento -->
+<div id="modal-novo-inv" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Novo Investimento</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form method="post" action="/investimentos/novo">
+      <div class="form-group"><label>Descrição *</label><input name="description" required/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Categoria *</label>
+          <select name="category" required>
+            <option value="">Selecione…</option>
+            <option>Tecnologia</option>
+            <option>Marketing</option>
+            <option>Infraestrutura</option>
+            <option>Pessoal</option>
+            <option>Equipamentos</option>
+            <option>Treinamento</option>
+            <option>Outros</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Valor (R$) *</label>
+          <input type="number" step="0.01" name="value" required/>
+        </div>
+      </div>
+      <div class="form-group"><label>Data</label><input type="date" name="date"/></div>
+      <div class="form-group"><label>Observações</label><textarea name="notes" rows="3"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

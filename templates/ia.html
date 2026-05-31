@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% block title %}IA — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-wand-magic-sparkles"></i> Inteligência Artificial</h2>
+  <span class="page-sub">Geração de copies e imagens com ChatGPT + DALL-E</span>
+</div>
+
+{% if not has_key %}
+<div class="ia-alert">
+  <i class="fa fa-triangle-exclamation"></i>
+  <div>
+    <strong>Chave da OpenAI não configurada.</strong>
+    <p>Adicione a variável <code>OPENAI_API_KEY</code> nas configurações do Railway para ativar a IA.</p>
+    <a href="https://platform.openai.com/api-keys" target="_blank" class="btn btn-primary btn-sm" style="margin-top:.5rem">
+      <i class="fa fa-key"></i> Obter minha API Key
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div class="ia-grid">
+
+  <!-- ── Copy Generator ── -->
+  <div class="ia-card">
+    <div class="ia-card-header">
+      <div class="ia-icon copy-icon"><i class="fa fa-pen-nib"></i></div>
+      <div>
+        <h3>Gerar Copy</h3>
+        <p>Textos prontos para anúncios, legendas, CTAs e mais</p>
+      </div>
+    </div>
+
+    <div class="ia-form" id="copy-form">
+      <div class="form-group">
+        <label>Produto / Serviço *</label>
+        <textarea id="cp-description" rows="2" placeholder="Ex: Academia de musculação com foco em emagrecimento para mulheres acima de 30 anos"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Plataforma</label>
+          <select id="cp-platform">
+            <option value="">Selecione…</option>
+            <option>Instagram</option><option>Facebook</option><option>Google Ads</option>
+            <option>TikTok</option><option>LinkedIn</option><option>WhatsApp</option><option>E-mail</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Copy</label>
+          <select id="cp-type">
+            <option value="">Selecione…</option>
+            <option>Anúncio</option><option>Legenda</option><option>CTA</option>
+            <option>Headline</option><option>Página de Vendas</option><option>Bio</option>
+            <option>Story</option><option>Roteiro de Vídeo</option><option>E-mail</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Objetivo</label>
+          <select id="cp-goal">
+            <option value="">Selecione…</option>
+            <option>Gerar leads</option><option>Vender direto</option><option>Engajamento</option>
+            <option>Branding / Consciência</option><option>Fidelização</option><option>Reativação</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tom de Voz</label>
+          <select id="cp-tone">
+            <option value="profissional">Profissional</option>
+            <option value="descontraído">Descontraído</option>
+            <option value="urgente">Urgente / Escassez</option>
+            <option value="emocional">Emocional</option>
+            <option value="informativo">Informativo</option>
+            <option value="provocativo">Provocativo</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cliente (opcional)</label>
+          <select id="cp-client">
+            <option value="">Nenhum</option>
+            {% for c in clients %}<option value="{{ c.id }}" data-name="{{ c.name }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Instruções extras</label>
+          <input id="cp-extra" placeholder="Ex: usar emojis, máx 150 chars…"/>
+        </div>
+      </div>
+      <button class="btn btn-primary ia-generate-btn" onclick="gerarCopy()" {% if not has_key %}disabled{% endif %}>
+        <i class="fa fa-wand-magic-sparkles"></i> Gerar Copy
+      </button>
+    </div>
+
+    <!-- Result -->
+    <div id="copy-result" class="ia-result" style="display:none">
+      <div class="ia-result-header">
+        <span><i class="fa fa-check-circle" style="color:var(--green)"></i> Copy gerada!</span>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn btn-sm btn-ghost" onclick="copiarTexto()"><i class="fa fa-copy"></i> Copiar</button>
+          <button class="btn btn-sm btn-primary" onclick="openSaveCopy()"><i class="fa fa-floppy-disk"></i> Salvar no Banco</button>
+          <button class="btn btn-sm btn-ghost" onclick="gerarCopy()"><i class="fa fa-rotate"></i> Regerar</button>
+        </div>
+      </div>
+      <div id="copy-text" class="ia-result-text"></div>
+    </div>
+
+    <div id="copy-loading" class="ia-loading" style="display:none">
+      <div class="ia-spinner"></div>
+      <span>Gerando copy com ChatGPT…</span>
+    </div>
+    <div id="copy-error" class="ia-error" style="display:none"></div>
+  </div>
+
+  <!-- ── Image Generator ── -->
+  <div class="ia-card">
+    <div class="ia-card-header">
+      <div class="ia-icon img-icon"><i class="fa fa-image"></i></div>
+      <div>
+        <h3>Gerar Imagem</h3>
+        <p>Criação de imagens com DALL-E 3 para posts e anúncios</p>
+      </div>
+    </div>
+
+    <div class="ia-form">
+      <div class="form-group">
+        <label>Descreva a imagem *</label>
+        <textarea id="img-prompt" rows="3" placeholder="Ex: Mulher sorrindo na academia, ambiente moderno com equipamentos, iluminação quente, estilo fotorrealista"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estilo Visual</label>
+          <select id="img-style">
+            <option value="">Automático</option>
+            <option>Fotorrealista</option><option>Minimalista</option><option>Ilustração</option>
+            <option>Flat design</option><option>Cinematográfico</option><option>Arte digital</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Formato</label>
+          <select id="img-size">
+            <option value="1024x1024">Quadrado 1:1 (Feed)</option>
+            <option value="1024x1792">Vertical 9:16 (Stories/Reels)</option>
+            <option value="1792x1024">Horizontal 16:9 (YouTube/Ads)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Cliente (opcional)</label>
+        <select id="img-client">
+          <option value="">Nenhum</option>
+          {% for c in clients %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <button class="btn btn-primary ia-generate-btn" onclick="gerarImagem()" {% if not has_key %}disabled{% endif %}>
+        <i class="fa fa-image"></i> Gerar Imagem
+      </button>
+    </div>
+
+    <div id="img-loading" class="ia-loading" style="display:none">
+      <div class="ia-spinner"></div>
+      <span>Gerando imagem com DALL-E 3… (pode levar ~20s)</span>
+    </div>
+    <div id="img-error" class="ia-error" style="display:none"></div>
+
+    <div id="img-result" class="ia-result" style="display:none">
+      <div class="ia-result-header">
+        <span><i class="fa fa-check-circle" style="color:var(--green)"></i> Imagem gerada!</span>
+        <a id="img-download" href="#" download="eleva-imagem.png" class="btn btn-sm btn-primary" target="_blank">
+          <i class="fa fa-download"></i> Baixar
+        </a>
+      </div>
+      <img id="img-preview" src="" alt="Imagem gerada" class="ia-img-preview"/>
+      <div id="img-revised" class="ia-result-hint"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Salvar Copy -->
+<div id="modal-save-copy" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3><i class="fa fa-floppy-disk"></i> Salvar no Banco de Copys</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <div style="padding:1.25rem">
+      <div class="form-group"><label>Título *</label><input id="save-title" required placeholder="Ex: CTA para tráfego frio — Instagram"/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label>
+          <select id="save-type">
+            <option value="">Selecione…</option>
+            <option>Anúncio</option><option>Legenda</option><option>CTA</option><option>Headline</option>
+            <option>Página de Vendas</option><option>E-mail</option><option>Bio</option><option>Roteiro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Plataforma</label>
+          <select id="save-platform">
+            <option value="">Selecione…</option>
+            <option>Instagram</option><option>Facebook</option><option>Google</option>
+            <option>TikTok</option><option>LinkedIn</option><option>WhatsApp</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label>
+          <select id="save-client">
+            <option value="">Geral</option>
+            {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>Nicho</label><input id="save-niche" placeholder="Ex: Fitness, Imóveis…"/></div>
+      </div>
+      <div class="form-group"><label>Copy</label><textarea id="save-content" rows="5"></textarea></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarCopy()"><i class="fa fa-floppy-disk"></i> Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function gerarCopy() {
+  const desc = document.getElementById('cp-description').value.trim();
+  if (!desc) { alert('Descreva o produto/serviço primeiro!'); return; }
+
+  document.getElementById('copy-result').style.display  = 'none';
+  document.getElementById('copy-error').style.display   = 'none';
+  document.getElementById('copy-loading').style.display = 'flex';
+
+  const fd = new FormData();
+  fd.append('description', desc);
+  fd.append('platform',    document.getElementById('cp-platform').value);
+  fd.append('copy_type',   document.getElementById('cp-type').value);
+  fd.append('goal',        document.getElementById('cp-goal').value);
+  fd.append('tone',        document.getElementById('cp-tone').value);
+  fd.append('extra',       document.getElementById('cp-extra').value);
+  const sel = document.getElementById('cp-client');
+  fd.append('client_name', sel.options[sel.selectedIndex].dataset.name || '');
+
+  try {
+    const r = await fetch('/ia/gerar-copy', { method: 'POST', body: fd });
+    const d = await r.json();
+    document.getElementById('copy-loading').style.display = 'none';
+    if (d.error) {
+      document.getElementById('copy-error').style.display  = 'block';
+      document.getElementById('copy-error').textContent    = d.error;
+    } else {
+      document.getElementById('copy-text').textContent     = d.copy;
+      document.getElementById('copy-result').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('copy-loading').style.display = 'none';
+    document.getElementById('copy-error').style.display   = 'block';
+    document.getElementById('copy-error').textContent     = 'Erro de conexão. Tente novamente.';
+  }
+}
+
+function copiarTexto() {
+  const text = document.getElementById('copy-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target.closest('button');
+    btn.innerHTML = '<i class="fa fa-check"></i> Copiado!';
+    setTimeout(() => btn.innerHTML = '<i class="fa fa-copy"></i> Copiar', 2000);
+  });
+}
+
+function openSaveCopy() {
+  const text = document.getElementById('copy-text').textContent;
+  document.getElementById('save-content').value = text;
+  document.getElementById('save-type').value    = document.getElementById('cp-type').value;
+  document.getElementById('save-platform').value= document.getElementById('cp-platform').value;
+  openModal('modal-save-copy');
+}
+
+async function salvarCopy() {
+  const title = document.getElementById('save-title').value.trim();
+  if (!title) { alert('Dê um título para a copy!'); return; }
+  const fd = new FormData();
+  fd.append('title',     title);
+  fd.append('content',   document.getElementById('save-content').value);
+  fd.append('copy_type', document.getElementById('save-type').value);
+  fd.append('platform',  document.getElementById('save-platform').value);
+  fd.append('client_id', document.getElementById('save-client').value);
+  fd.append('niche',     document.getElementById('save-niche').value);
+  const r = await fetch('/ia/salvar-copy', { method:'POST', body:fd });
+  const d = await r.json();
+  if (d.ok) {
+    closeModal();
+    const btn = document.querySelector('#modal-save-copy .btn-primary');
+    btn.innerHTML = '<i class="fa fa-check"></i> Salvo!';
+    setTimeout(() => btn.innerHTML = '<i class="fa fa-floppy-disk"></i> Salvar', 2000);
+  }
+}
+
+async function gerarImagem() {
+  const prompt = document.getElementById('img-prompt').value.trim();
+  if (!prompt) { alert('Descreva a imagem primeiro!'); return; }
+
+  document.getElementById('img-result').style.display  = 'none';
+  document.getElementById('img-error').style.display   = 'none';
+  document.getElementById('img-loading').style.display = 'flex';
+
+  const fd = new FormData();
+  fd.append('prompt',      prompt);
+  fd.append('style',       document.getElementById('img-style').value);
+  fd.append('size',        document.getElementById('img-size').value);
+  fd.append('client_name', document.getElementById('img-client').value);
+
+  try {
+    const r = await fetch('/ia/gerar-imagem', { method: 'POST', body: fd });
+    const d = await r.json();
+    document.getElementById('img-loading').style.display = 'none';
+    if (d.error) {
+      document.getElementById('img-error').style.display  = 'block';
+      document.getElementById('img-error').textContent    = d.error;
+    } else {
+      document.getElementById('img-preview').src           = d.url;
+      document.getElementById('img-download').href         = d.url;
+      document.getElementById('img-revised').textContent   = d.revised_prompt ? `💡 ${d.revised_prompt}` : '';
+      document.getElementById('img-result').style.display  = 'block';
+    }
+  } catch(e) {
+    document.getElementById('img-loading').style.display = 'none';
+    document.getElementById('img-error').style.display   = 'block';
+    document.getElementById('img-error').textContent     = 'Erro de conexão. Tente novamente.';
+  }
+}
+</script>
+{% endblock %}

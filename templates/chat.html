@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Chat — ELEVA{% endblock %}
+{% block content %}
+<div class="chat-container">
+  <div class="chat-header">
+    <div>
+      <h2><i class="fa fa-comments"></i> ELEVA Assistant</h2>
+      <p class="chat-subtitle">Seu auxiliar inteligente de marketing digital</p>
+    </div>
+  </div>
+
+  <div class="chat-messages" id="chat-messages">
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="chat-message {% if msg.role == 'user' %}user-message{% else %}assistant-message{% endif %}">
+        <div class="message-avatar">
+          {% if msg.role == 'user' %}
+            <span class="avatar-initials">{{ user.name[0]|upper }}</span>
+          {% else %}
+            <span class="avatar-icon"><i class="fa fa-wand-magic-sparkles"></i></span>
+          {% endif %}
+        </div>
+        <div class="message-content">
+          <div class="message-name">{{ msg.user_name }}</div>
+          <div class="message-text">{{ msg.content }}</div>
+          <div class="message-time">{{ msg.created_at[:16] }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="chat-empty">
+      <div class="chat-empty-icon"><i class="fa fa-sparkles"></i></div>
+      <h3>Bem-vindo ao ELEVA Assistant!</h3>
+      <p>Sou seu auxiliar inteligente em marketing digital, gestão de agências, tráfego pago e social media.</p>
+      <p style="font-size:.85rem;color:var(--muted);margin-top:.75rem">Faça perguntas, peça dicas, analise estratégias — estou aqui para ajudar!</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <form class="chat-input-form" id="chat-form" onsubmit="enviarMensagem(event)">
+    <input
+      type="text"
+      id="chat-input"
+      placeholder="Digite sua pergunta… (Estratégia? Dúvida? Análise?)"
+      autocomplete="off"
+      required
+    />
+    <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i></button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chatMessages = document.getElementById('chat-messages');
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+
+function scrollToBottom() {
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addMessage(role, content, userName) {
+  const div = document.createElement('div');
+  div.className = `chat-message ${role === 'user' ? 'user-message' : 'assistant-message'}`;
+
+  const initials = role === 'user' ? '{{ user.name[0]|upper }}' : '✨';
+  const avatar = role === 'user'
+    ? `<span class="avatar-initials">${initials}</span>`
+    : `<span class="avatar-icon"><i class="fa fa-wand-magic-sparkles"></i></span>`;
+
+  const now = new Date().toLocaleString('pt-BR', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit'
+  }).replace(/(\d{2})\/(\d{2})\/(\d{4}).*(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5');
+
+  div.innerHTML = `
+    <div class="message-avatar">${avatar}</div>
+    <div class="message-content">
+      <div class="message-name">${userName}</div>
+      <div class="message-text">${content}</div>
+      <div class="message-time">${now}</div>
+    </div>
+  `;
+
+  chatMessages.appendChild(div);
+  scrollToBottom();
+}
+
+async function enviarMensagem(e) {
+  e.preventDefault();
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  // Adiciona mensagem do usuário
+  addMessage('user', message, '{{ user.name }}');
+  chatInput.value = '';
+
+  // Mostra indicador de digitação
+  const typingDiv = document.createElement('div');
+  typingDiv.id = 'typing-indicator';
+  typingDiv.className = 'chat-message assistant-message';
+  typingDiv.innerHTML = `
+    <div class="message-avatar"><span class="avatar-icon"><i class="fa fa-wand-magic-sparkles"></i></span></div>
+    <div class="message-content">
+      <div class="message-name">ELEVA Assistant</div>
+      <div class="message-typing"><span></span><span></span><span></span></div>
+    </div>
+  `;
+  chatMessages.appendChild(typingDiv);
+  scrollToBottom();
+
+  try {
+    const fd = new FormData();
+    fd.append('message', message);
+    const r = await fetch('/chat/enviar', { method: 'POST', body: fd });
+    const d = await r.json();
+
+    document.getElementById('typing-indicator').remove();
+
+    if (d.ok) {
+      addMessage('assistant', d.response, 'ELEVA Assistant');
+    } else {
+      addMessage('assistant', '❌ ' + (d.error || 'Erro ao processar'), 'ELEVA Assistant');
+    }
+  } catch (err) {
+    document.getElementById('typing-indicator').remove();
+    addMessage('assistant', '❌ Erro de conexão. Tente novamente.', 'ELEVA Assistant');
+  }
+}
+
+// Foca no input ao carregar
+window.addEventListener('load', () => {
+  chatInput.focus();
+  scrollToBottom();
+});
+</script>
+{% endblock %}

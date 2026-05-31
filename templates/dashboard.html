@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-chart-line"></i> Dashboard</h2>
+  <span class="page-sub">Visão geral da empresa</span>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card green">
+    <div class="kpi-icon"><i class="fa fa-users"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">{{ total_clients }}</span>
+      <span class="kpi-label">Clientes Ativos</span>
+    </div>
+  </div>
+  <div class="kpi-card blue">
+    <div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(total_revenue)|replace(".",",") }}</span>
+      <span class="kpi-label">Receita Contratada</span>
+    </div>
+  </div>
+  <div class="kpi-card purple">
+    <div class="kpi-icon"><i class="fa fa-coins"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(total_investment)|replace(".",",") }}</span>
+      <span class="kpi-label">Total Investido</span>
+    </div>
+  </div>
+  <div class="kpi-card orange">
+    <div class="kpi-icon"><i class="fa fa-bullhorn"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(total_ads)|replace(".",",") }}</span>
+      <span class="kpi-label">Gasto em Anúncios</span>
+    </div>
+  </div>
+  <div class="kpi-card teal">
+    <div class="kpi-icon"><i class="fa fa-money-bill-wave"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(total_prolabore)|replace(".",",") }}</span>
+      <span class="kpi-label">Pró-Labore (Mês)</span>
+    </div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-icon"><i class="fa fa-list-check"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">{{ open_tasks }}</span>
+      <span class="kpi-label">Tarefas Abertas</span>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="card chart-card">
+    <div class="card-header">
+      <h3><i class="fa fa-chart-bar"></i> Novos Clientes (Últimos 6 meses)</h3>
+    </div>
+    <canvas id="revenueChart" height="120"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fa fa-clock"></i> Tarefas Urgentes</h3>
+      <a href="/proximos-passos" class="btn btn-sm">Ver todas</a>
+    </div>
+    {% if urgent_tasks %}
+    <ul class="task-list">
+      {% for t in urgent_tasks %}
+      <li class="task-item">
+        <span class="priority-dot priority-{{ t.priority }}"></span>
+        <div class="task-info">
+          <span class="task-title">{{ t.title }}</span>
+          {% if t.deadline %}<span class="task-deadline"><i class="fa fa-calendar"></i> {{ t.deadline }}</span>{% endif %}
+        </div>
+        <span class="badge badge-{{ t.status }}">{{ t.status|replace('_',' ') }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state"><i class="fa fa-check-circle"></i><p>Nenhuma tarefa aberta.</p></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fa fa-user-plus"></i> Últimos Clientes</h3>
+      <a href="/clientes" class="btn btn-sm">Ver todos</a>
+    </div>
+    {% if recent_clients %}
+    <ul class="client-list">
+      {% for c in recent_clients %}
+      <li class="client-item">
+        <div class="client-avatar">{{ c.name[0]|upper }}</div>
+        <div class="client-info">
+          <span class="client-name">{{ c.name }}</span>
+          <span class="client-company">{{ c.company or '—' }}</span>
+        </div>
+        <span class="client-value">R$ {{ "%.0f"|format(c.contract_value) }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state"><i class="fa fa-users"></i><p>Nenhum cliente cadastrado.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const labels = {{ monthly_labels | tojson }};
+const values = {{ monthly_values | tojson }};
+const ctx = document.getElementById('revenueChart');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.length ? labels : ['Sem dados'],
+      datasets: [{
+        label: 'Valor Contratado (R$)',
+        data: values.length ? values : [0],
+        backgroundColor: 'rgba(79,140,255,0.7)',
+        borderColor: '#4f8cff',
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#c8d0e0' } } },
+      scales: {
+        x: { ticks: { color: '#8899aa' }, grid: { color: '#2a3448' } },
+        y: { ticks: { color: '#8899aa' }, grid: { color: '#2a3448' } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

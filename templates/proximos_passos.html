@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Próximos Passos — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-list-check"></i> Próximos Passos</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-nova-tarefa')">
+    <i class="fa fa-plus"></i> Nova Tarefa
+  </button>
+</div>
+
+<div class="toolbar">
+  <div class="filter-tabs">
+    <a href="/proximos-passos" class="tab {% if not status_filter %}active{% endif %}">
+      Todas <span class="count">{{ (count_map.values()|sum) if count_map else 0 }}</span>
+    </a>
+    <a href="/proximos-passos?status_filter=aberto" class="tab {% if status_filter=='aberto' %}active{% endif %}">
+      Abertas <span class="count">{{ count_map.get('aberto', 0) }}</span>
+    </a>
+    <a href="/proximos-passos?status_filter=em_andamento" class="tab {% if status_filter=='em_andamento' %}active{% endif %}">
+      Em andamento <span class="count">{{ count_map.get('em_andamento', 0) }}</span>
+    </a>
+    <a href="/proximos-passos?status_filter=concluido" class="tab {% if status_filter=='concluido' %}active{% endif %}">
+      Concluídas <span class="count">{{ count_map.get('concluido', 0) }}</span>
+    </a>
+  </div>
+</div>
+
+{% if tasks %}
+<div class="tasks-board">
+  {% for t in tasks %}
+  <div class="task-card priority-border-{{ t.priority }}">
+    <div class="task-card-header">
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <span class="priority-dot priority-{{ t.priority }}" title="Prioridade {{ t.priority }}"></span>
+        <strong>{{ t.title }}</strong>
+      </div>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <span class="badge badge-{{ t.status }}">{{ t.status|replace('_',' ') }}</span>
+        <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline"
+              onsubmit="return confirm('Remover tarefa?')">
+          <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% if t.description %}
+    <p class="task-desc">{{ t.description }}</p>
+    {% endif %}
+    <div class="task-card-footer">
+      <div class="task-meta">
+        {% if t.responsible %}
+        <span><i class="fa fa-user"></i> {{ t.responsible }}</span>
+        {% endif %}
+        {% if t.deadline %}
+        <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
+        {% endif %}
+      </div>
+      <form method="post" action="/proximos-passos/{{ t.id }}/status" class="status-form">
+        <select name="status" onchange="this.form.submit()" class="select-inline">
+          <option value="aberto" {% if t.status=='aberto' %}selected{% endif %}>Aberto</option>
+          <option value="em_andamento" {% if t.status=='em_andamento' %}selected{% endif %}>Em andamento</option>
+          <option value="concluido" {% if t.status=='concluido' %}selected{% endif %}>Concluído</option>
+        </select>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-list-check"></i><p>Nenhuma tarefa encontrada.</p></div>
+{% endif %}
+
+<!-- Modal Nova Tarefa -->
+<div id="modal-nova-tarefa" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Nova Tarefa</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form method="post" action="/proximos-passos/novo">
+      <div class="form-group"><label>Título *</label><input name="title" required/></div>
+      <div class="form-group"><label>Descrição</label><textarea name="description" rows="3"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Responsável</label><input name="responsible"/></div>
+        <div class="form-group"><label>Prazo</label><input type="date" name="deadline"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Prioridade</label>
+          <select name="priority">
+            <option value="alta">Alta</option>
+            <option value="media" selected>Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select name="status">
+            <option value="aberto">Aberto</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="concluido">Concluído</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

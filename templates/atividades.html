@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Atividades — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-clock-rotate-left"></i> Registro de Atividades</h2>
+  <span class="page-sub">Todas as ações dos CEOs no sistema</span>
+</div>
+
+<div class="toolbar">
+  <form method="get" action="/atividades" style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+    <select name="ceo_filter" onchange="this.form.submit()" class="select-inline">
+      <option value="" {% if not ceo_filter %}selected{% endif %}>Todos os CEOs</option>
+      {% for c in ceos %}<option value="{{ c }}" {% if ceo_filter==c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+    <select name="entity_filter" onchange="this.form.submit()" class="select-inline">
+      <option value="" {% if not entity_filter %}selected{% endif %}>Todos os módulos</option>
+      {% for e in entities %}<option value="{{ e }}" {% if entity_filter==e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+    </select>
+    {% if ceo_filter or entity_filter %}<a href="/atividades" class="btn btn-sm btn-ghost">Limpar</a>{% endif %}
+  </form>
+</div>
+
+{% if activities %}
+<div class="activity-feed">
+  {% for a in activities %}
+  <div class="activity-item">
+    <div class="activity-avatar">{{ a.user_name[0]|upper if a.user_name else '?' }}</div>
+    <div class="activity-body">
+      <div class="activity-line">
+        <strong class="activity-user">{{ a.user_name or '—' }}</strong>
+        <span class="activity-action">{{ a.action }}</span>
+        <span class="activity-entity">{{ a.entity_type }}</span>
+        {% if a.details %}<span class="activity-details">— {{ a.details }}</span>{% endif %}
+      </div>
+      <div class="activity-time"><i class="fa fa-clock"></i> {{ a.created_at }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-clock-rotate-left"></i><p>Nenhuma atividade registrada.</p></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ project.title }} — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/projetos" class="btn btn-ghost btn-sm" style="margin-bottom:.5rem"><i class="fa fa-arrow-left"></i> Projetos</a>
+    <h2><i class="fa fa-briefcase"></i> {{ project.title }}</h2>
+    {% if project.client_name %}<p class="page-sub">{{ project.client_name }}</p>{% endif %}
+  </div>
+  <span class="badge badge-{{ project.status }}">{{ project.status|replace('_',' ') }}</span>
+</div>
+
+<div class="project-info-grid">
+  {% if project.service_type %}<div class="info-chip"><i class="fa fa-tag"></i> {{ project.service_type }}</div>{% endif %}
+  {% if project.responsible %}<div class="info-chip"><i class="fa fa-user-tie"></i> {{ project.responsible }}</div>{% endif %}
+  {% if project.deadline %}<div class="info-chip"><i class="fa fa-calendar"></i> Prazo: {{ project.deadline }}</div>{% endif %}
+  <div class="info-chip creator"><i class="fa fa-pen"></i> Criado por: {{ project.creator or '—' }}</div>
+</div>
+{% if project.notes %}<p class="project-notes">{{ project.notes }}</p>{% endif %}
+
+<div class="card" style="margin-top:1.25rem">
+  <div class="card-header">
+    <h3><i class="fa fa-list-check"></i> Tarefas ({{ tasks|length }})</h3>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-nova-tarefa')"><i class="fa fa-plus"></i> Tarefa</button>
+  </div>
+  {% if tasks %}
+  <ul class="task-checklist">
+    {% for t in tasks %}
+    <li class="task-check-item">
+      <form method="post" action="/projetos/{{ project.id }}/tarefa/{{ t.id }}/status" style="display:flex;align-items:center;gap:.6rem;flex:1">
+        <input type="hidden" name="status" value="{% if t.status=='concluido' %}pendente{% else %}concluido{% endif %}"/>
+        <button type="submit" class="check-btn {% if t.status=='concluido' %}checked{% endif %}">
+          <i class="fa {% if t.status=='concluido' %}fa-check-square{% else %}fa-square{% endif %}"></i>
+        </button>
+        <span class="{% if t.status=='concluido' %}task-done{% endif %}">{{ t.title }}</span>
+      </form>
+      <div class="task-check-meta">
+        {% if t.responsible %}<span class="muted"><i class="fa fa-user"></i> {{ t.responsible }}</span>{% endif %}
+        {% if t.deadline %}<span class="muted"><i class="fa fa-calendar"></i> {{ t.deadline }}</span>{% endif %}
+        <span class="badge badge-{{ t.status }}">{{ t.status }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state"><i class="fa fa-list-check"></i><p>Nenhuma tarefa adicionada.</p></div>
+  {% endif %}
+</div>
+
+<!-- Modal Nova Tarefa -->
+<div id="modal-nova-tarefa" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Nova Tarefa</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/projetos/{{ project.id }}/tarefa">
+      <div class="form-group"><label>Título *</label><input name="title" required/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Responsável</label><input name="responsible"/></div>
+        <div class="form-group"><label>Prazo</label><input type="date" name="deadline"/></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Adicionar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Pipeline CRM — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-filter"></i> Pipeline CRM</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-lead')"><i class="fa fa-plus"></i> Novo Lead</button>
+</div>
+
+<div class="pipeline-board">
+  {% for stage in stages %}
+  {% if stage != 'perdido' %}
+  <div class="pipeline-col">
+    <div class="pipeline-col-header stage-{{ stage }}">
+      <span>{{ stages_label[stage] }}</span>
+      <span class="count">{{ by_stage[stage]|length }}</span>
+    </div>
+    {% if totals[stage] > 0 %}
+    <div class="pipeline-col-total">R$ {{ "%.0f"|format(totals[stage]) }}</div>
+    {% endif %}
+    <div class="pipeline-cards">
+      {% for lead in by_stage[stage] %}
+      <div class="pipeline-card">
+        <div class="pipeline-card-name">{{ lead.contact_name }}</div>
+        {% if lead.company %}<div class="pipeline-card-company">{{ lead.company }}</div>{% endif %}
+        {% if lead.service_type %}<div class="pipeline-card-tag">{{ lead.service_type }}</div>{% endif %}
+        {% if lead.value > 0 %}<div class="pipeline-card-value">R$ {{ "%.0f"|format(lead.value) }}</div>{% endif %}
+        <div class="pipeline-card-meta">
+          {% if lead.responsible %}<span><i class="fa fa-user"></i> {{ lead.responsible }}</span>{% endif %}
+          <span class="creator-badge"><i class="fa fa-pen"></i> {{ lead.creator or '—' }}</span>
+        </div>
+        <div class="pipeline-card-actions">
+          <form method="post" action="/pipeline/{{ lead.id }}/stage" style="flex:1">
+            <select name="stage" onchange="this.form.submit()" class="select-inline" style="width:100%">
+              {% for s in stages %}
+              <option value="{{ s }}" {% if s == lead.stage %}selected{% endif %}>{{ stages_label[s] }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          <form method="post" action="/pipeline/{{ lead.id }}/deletar" onsubmit="return confirm('Remover?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% if not by_stage[stage] %}
+      <div class="pipeline-empty">Nenhum lead</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{% if by_stage['perdido'] %}
+<div class="card" style="margin-top:1rem">
+  <div class="card-header"><h3><i class="fa fa-xmark"></i> Perdidos</h3></div>
+  <div class="table-scroll"><table class="table">
+    <thead><tr><th>Nome</th><th>Empresa</th><th>Serviço</th><th>Valor</th><th>Responsável</th><th>CEO</th><th></th></tr></thead>
+    <tbody>
+    {% for lead in by_stage['perdido'] %}
+    <tr>
+      <td>{{ lead.contact_name }}</td><td>{{ lead.company or '—' }}</td>
+      <td>{{ lead.service_type or '—' }}</td>
+      <td class="money">{% if lead.value > 0 %}R$ {{ "%.0f"|format(lead.value) }}{% else %}—{% endif %}</td>
+      <td>{{ lead.responsible or '—' }}</td>
+      <td><span class="creator-badge">{{ lead.creator or '—' }}</span></td>
+      <td>
+        <form method="post" action="/pipeline/{{ lead.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+          <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+
+<!-- Modal Novo Lead -->
+<div id="modal-novo-lead" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Novo Lead</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/pipeline/novo">
+      <div class="form-row">
+        <div class="form-group"><label>Nome *</label><input name="contact_name" required/></div>
+        <div class="form-group"><label>Empresa</label><input name="company"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Telefone</label><input name="phone"/></div>
+        <div class="form-group"><label>E-mail</label><input type="email" name="email"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Serviço</label>
+          <select name="service_type">
+            <option value="">Selecione…</option>
+            <option>Tráfego Pago</option><option>Social Media</option><option>Site</option>
+            <option>E-commerce</option><option>Copy</option><option>Planejamento</option><option>Pacote Completo</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Etapa</label>
+          <select name="stage">
+            {% for s in stages %}<option value="{{ s }}">{{ stages_label[s] }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor Estimado (R$)</label><input type="number" step="0.01" name="value" value="0"/></div>
+        <div class="form-group"><label>Responsável</label><input name="responsible"/></div>
+      </div>
+      <div class="form-group"><label>Observações</label><textarea name="notes" rows="2"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Financeiro — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-wallet"></i> Financeiro</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-fin')"><i class="fa fa-plus"></i> Novo Registro</button>
+</div>
+
+<div class="kpi-grid small">
+  <div class="kpi-card gold">
+    <div class="kpi-icon"><i class="fa fa-arrow-up"></i></div>
+    <div class="kpi-body"><span class="kpi-value">R$ {{ "%.2f"|format(total_receita)|replace(".",",") }}</span><span class="kpi-label">Total Receita</span></div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-icon"><i class="fa fa-arrow-down"></i></div>
+    <div class="kpi-body"><span class="kpi-value">R$ {{ "%.2f"|format(total_despesa)|replace(".",",") }}</span><span class="kpi-label">Total Despesa</span></div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-icon"><i class="fa fa-check-circle"></i></div>
+    <div class="kpi-body"><span class="kpi-value">R$ {{ "%.2f"|format(total_pago)|replace(".",",") }}</span><span class="kpi-label">Recebido</span></div>
+  </div>
+  <div class="kpi-card orange">
+    <div class="kpi-icon"><i class="fa fa-clock"></i></div>
+    <div class="kpi-body"><span class="kpi-value">R$ {{ "%.2f"|format(total_pendente)|replace(".",",") }}</span><span class="kpi-label">A Receber</span></div>
+  </div>
+  <div class="kpi-card {% if saldo >= 0 %}green{% else %}red{% endif %}">
+    <div class="kpi-icon"><i class="fa fa-scale-balanced"></i></div>
+    <div class="kpi-body"><span class="kpi-value">R$ {{ "%.2f"|format(saldo)|replace(".",",") }}</span><span class="kpi-label">Saldo</span></div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="filter-tabs">
+    <a href="/financeiro" class="tab {% if not type_filter %}active{% endif %}">Todos</a>
+    <a href="/financeiro?type_filter=receita" class="tab {% if type_filter=='receita' %}active{% endif %}">Receitas</a>
+    <a href="/financeiro?type_filter=despesa" class="tab {% if type_filter=='despesa' %}active{% endif %}">Despesas</a>
+  </div>
+</div>
+
+{% if records %}
+<div class="table-wrapper"><div class="table-scroll">
+  <table class="table">
+    <thead><tr><th>Descrição</th><th>Cliente</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Pagamento</th><th>Status</th><th>CEO</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for r in records %}
+    <tr>
+      <td><strong>{{ r.description }}</strong></td>
+      <td>{{ r.client_name or '—' }}</td>
+      <td><span class="tag {% if r.type=='receita' %}tag-receita{% else %}tag-despesa{% endif %}">{{ r.type }}</span></td>
+      <td class="money {% if r.type=='despesa' %}money-red{% endif %}">{% if r.type=='despesa' %}-{% endif %}R$ {{ "%.2f"|format(r.value)|replace(".",",") }}</td>
+      <td>{{ r.due_date or '—' }}</td>
+      <td>{{ r.paid_date or '—' }}</td>
+      <td>
+        <form method="post" action="/financeiro/{{ r.id }}/status" style="display:inline">
+          <select name="status" onchange="this.form.submit()" class="select-inline badge-select">
+            <option value="pendente" {% if r.status=='pendente' %}selected{% endif %}>Pendente</option>
+            <option value="pago" {% if r.status=='pago' %}selected{% endif %}>Pago</option>
+            <option value="atrasado" {% if r.status=='atrasado' %}selected{% endif %}>Atrasado</option>
+          </select>
+        </form>
+      </td>
+      <td><span class="creator-badge">{{ r.creator or '—' }}</span></td>
+      <td>
+        <form method="post" action="/financeiro/{{ r.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+          <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-wallet"></i><p>Nenhum registro financeiro.</p></div>
+{% endif %}
+
+<!-- Modal Novo Registro -->
+<div id="modal-novo-fin" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Novo Registro Financeiro</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/financeiro/novo">
+      <div class="form-group"><label>Descrição *</label><input name="description" required/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label>
+          <select name="type"><option value="receita">Receita</option><option value="despesa">Despesa</option></select>
+        </div>
+        <div class="form-group"><label>Valor (R$) *</label><input type="number" step="0.01" name="value" required/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label>
+          <select name="client_id">
+            <option value="">Selecione…</option>
+            {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>Vencimento</label><input type="date" name="due_date"/></div>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select name="status"><option value="pendente">Pendente</option><option value="pago">Pago</option></select>
+      </div>
+      <div class="form-group"><label>Observações</label><textarea name="notes" rows="2"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Relatório — {{ client.name }}</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <style>
+    @media print {
+      .no-print { display:none!important; }
+      body { background:#fff!important; color:#000!important; }
+      .report-card { border:1px solid #ccc!important; }
+    }
+    .report-header { background:linear-gradient(135deg,#111,#1a1a1a); border:1px solid var(--gold-border); border-radius:12px; padding:2rem; margin-bottom:1.5rem; }
+    .report-logo { font-size:2rem; font-weight:900; color:var(--gold); letter-spacing:.1em; }
+    .report-client { font-size:1.4rem; font-weight:700; color:#fff; margin-top:.5rem; }
+    .report-sub { color:var(--muted); font-size:.875rem; margin-top:.25rem; }
+    .report-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:1.25rem; margin-bottom:1rem; }
+    .report-card h3 { color:var(--gold); font-size:.9rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:1rem; }
+    .report-stat { display:inline-flex; flex-direction:column; margin-right:2rem; margin-bottom:.75rem; }
+    .report-stat .val { font-size:1.4rem; font-weight:700; color:#fff; }
+    .report-stat .lbl { font-size:.72rem; color:var(--muted); text-transform:uppercase; }
+    .report-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+    .report-table th { color:var(--gold); padding:.5rem .75rem; border-bottom:1px solid var(--border); text-align:left; font-size:.72rem; text-transform:uppercase; }
+    .report-table td { padding:.5rem .75rem; border-bottom:1px solid var(--border); color:var(--sub); }
+    .status-ok { color:var(--green); }
+    .status-pend { color:var(--orange); }
+  </style>
+</head>
+<body style="padding:1.5rem;max-width:900px;margin:0 auto">
+
+  <div class="no-print" style="margin-bottom:1rem;display:flex;gap:.75rem">
+    <a href="/clientes" class="btn btn-ghost btn-sm"><i class="fa fa-arrow-left"></i> Voltar</a>
+    <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="fa fa-print"></i> Salvar PDF</button>
+  </div>
+
+  <div class="report-header">
+    <div class="report-logo">ELEVA</div>
+    <div class="report-client">{{ client.name }}</div>
+    <div class="report-sub">
+      {% if client.company %}{{ client.company }} · {% endif %}
+      Relatório gerado em {{ generated_at }}
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="report-card">
+    <h3><i class="fa fa-chart-line"></i> Resumo do Cliente</h3>
+    <div>
+      <div class="report-stat"><span class="val">R$ {{ "%.2f"|format(client.contract_value)|replace(".",",") }}</span><span class="lbl">Contrato</span></div>
+      <div class="report-stat"><span class="val">R$ {{ "%.2f"|format(total_pago)|replace(".",",") }}</span><span class="lbl">Recebido</span></div>
+      <div class="report-stat"><span class="val">R$ {{ "%.2f"|format(total_pendente)|replace(".",",") }}</span><span class="lbl">A Receber</span></div>
+      <div class="report-stat"><span class="val">{{ projects|length }}</span><span class="lbl">Projetos</span></div>
+      <div class="report-stat"><span class="val">{{ cal_posts|length }}</span><span class="lbl">Posts recentes</span></div>
+    </div>
+    {% if client.segment %}<p style="margin-top:.5rem;color:var(--muted);font-size:.85rem"><i class="fa fa-tag"></i> {{ client.segment }}</p>{% endif %}
+  </div>
+
+  <!-- Projetos -->
+  {% if projects %}
+  <div class="report-card">
+    <h3><i class="fa fa-briefcase"></i> Projetos</h3>
+    <table class="report-table">
+      <thead><tr><th>Projeto</th><th>Serviço</th><th>Responsável</th><th>Prazo</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for p in projects %}
+      <tr>
+        <td><strong>{{ p.title }}</strong></td>
+        <td>{{ p.service_type or '—' }}</td>
+        <td>{{ p.responsible or '—' }}</td>
+        <td>{{ p.deadline or '—' }}</td>
+        <td class="{% if p.status=='concluido' %}status-ok{% else %}status-pend{% endif %}">{{ p.status|replace('_',' ') }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Conteúdo -->
+  {% if cal_posts %}
+  <div class="report-card">
+    <h3><i class="fa fa-calendar-days"></i> Últimos Posts</h3>
+    <table class="report-table">
+      <thead><tr><th>Título</th><th>Plataforma</th><th>Tipo</th><th>Data</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for p in cal_posts %}
+      <tr>
+        <td>{{ p.title }}</td>
+        <td>{{ p.platform or '—' }}</td>
+        <td>{{ p.content_type or '—' }}</td>
+        <td>{{ p.scheduled_date or '—' }}</td>
+        <td class="{% if p.status=='publicado' %}status-ok{% else %}status-pend{% endif %}">{{ p.status }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Financeiro -->
+  {% if financial %}
+  <div class="report-card">
+    <h3><i class="fa fa-wallet"></i> Financeiro</h3>
+    <table class="report-table">
+      <thead><tr><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for f in financial %}
+      <tr>
+        <td>{{ f.description }}</td>
+        <td>{{ f.type }}</td>
+        <td>R$ {{ "%.2f"|format(f.value)|replace(".",",") }}</td>
+        <td>{{ f.due_date or '—' }}</td>
+        <td class="{% if f.status=='pago' %}status-ok{% else %}status-pend{% endif %}">{{ f.status }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if client.notes %}
+  <div class="report-card">
+    <h3><i class="fa fa-note-sticky"></i> Observações</h3>
+    <p style="color:var(--sub);font-size:.875rem;line-height:1.6">{{ client.notes }}</p>
+  </div>
+  {% endif %}
+
+  <div style="text-align:center;color:var(--muted);font-size:.75rem;margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border)">
+    Relatório gerado pelo sistema ELEVA Manager · {{ generated_at }}
+  </div>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</body>
+</html>

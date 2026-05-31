@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Anúncios — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-bullhorn"></i> Anúncios</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-ad')">
+    <i class="fa fa-plus"></i> Nova Campanha
+  </button>
+</div>
+
+<div class="kpi-grid small">
+  <div class="kpi-card orange">
+    <div class="kpi-icon"><i class="fa fa-wallet"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(total_budget)|replace(".",",") }}</span>
+      <span class="kpi-label">Budget Total</span>
+    </div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-icon"><i class="fa fa-receipt"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">R$ {{ "%.2f"|format(total_spent)|replace(".",",") }}</span>
+      <span class="kpi-label">Total Gasto</span>
+    </div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-icon"><i class="fa fa-user-tag"></i></div>
+    <div class="kpi-body">
+      <span class="kpi-value">{{ total_leads }}</span>
+      <span class="kpi-label">Leads Gerados</span>
+    </div>
+  </div>
+</div>
+
+{% if ads %}
+<div class="table-wrapper">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Campanha</th><th>Plataforma</th><th>Budget</th><th>Gasto</th>
+        <th>Leads</th><th>Conversões</th><th>Período</th><th>Status</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in ads %}
+      <tr>
+        <td><strong>{{ a.campaign_name }}</strong>{% if a.notes %}<div class="muted">{{ a.notes }}</div>{% endif %}</td>
+        <td><span class="tag">{{ a.platform }}</span></td>
+        <td class="money">R$ {{ "%.2f"|format(a.budget)|replace(".",",") }}</td>
+        <td class="money">R$ {{ "%.2f"|format(a.spent)|replace(".",",") }}</td>
+        <td>{{ a.leads }}</td>
+        <td>{{ a.conversions }}</td>
+        <td class="muted">
+          {% if a.start_date %}{{ a.start_date }}{% endif %}
+          {% if a.start_date and a.end_date %} → {% endif %}
+          {% if a.end_date %}{{ a.end_date }}{% endif %}
+          {% if not a.start_date and not a.end_date %}—{% endif %}
+        </td>
+        <td><span class="badge badge-{{ a.status }}">{{ a.status }}</span></td>
+        <td class="actions">
+          <button class="btn btn-sm btn-ghost" onclick="openEditAd({{ a | tojson }})">
+            <i class="fa fa-pen"></i>
+          </button>
+          <form method="post" action="/anuncios/{{ a.id }}/deletar" style="display:inline"
+                onsubmit="return confirm('Remover campanha?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-bullhorn"></i><p>Nenhuma campanha registrada.</p></div>
+{% endif %}
+
+<!-- Modal Nova Campanha -->
+<div id="modal-novo-ad" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Nova Campanha</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form method="post" action="/anuncios/novo">
+      <div class="form-row">
+        <div class="form-group"><label>Nome da Campanha *</label><input name="campaign_name" required/></div>
+        <div class="form-group"><label>Plataforma *</label>
+          <select name="platform" required>
+            <option value="">Selecione…</option>
+            <option>Instagram</option><option>Facebook</option><option>Google Ads</option>
+            <option>TikTok</option><option>LinkedIn</option><option>YouTube</option><option>Outros</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Budget (R$) *</label><input type="number" step="0.01" name="budget" required/></div>
+        <div class="form-group"><label>Gasto até agora (R$)</label><input type="number" step="0.01" name="spent" value="0"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Leads</label><input type="number" name="leads" value="0"/></div>
+        <div class="form-group"><label>Conversões</label><input type="number" name="conversions" value="0"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Início</label><input type="date" name="start_date"/></div>
+        <div class="form-group"><label>Fim</label><input type="date" name="end_date"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select name="status">
+            <option value="ativo">Ativo</option>
+            <option value="pausado">Pausado</option>
+            <option value="encerrado">Encerrado</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Observações</label><input name="notes"/></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Editar Campanha -->
+<div id="modal-edit-ad" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Editar Campanha</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form method="post" id="edit-ad-form" action="">
+      <div class="form-row">
+        <div class="form-group"><label>Nome da Campanha *</label><input id="ea-name" name="campaign_name" required/></div>
+        <div class="form-group"><label>Plataforma *</label>
+          <select id="ea-platform" name="platform" required>
+            <option>Instagram</option><option>Facebook</option><option>Google Ads</option>
+            <option>TikTok</option><option>LinkedIn</option><option>YouTube</option><option>Outros</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Budget (R$)</label><input id="ea-budget" type="number" step="0.01" name="budget"/></div>
+        <div class="form-group"><label>Gasto (R$)</label><input id="ea-spent" type="number" step="0.01" name="spent"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Leads</label><input id="ea-leads" type="number" name="leads"/></div>
+        <div class="form-group"><label>Conversões</label><input id="ea-conv" type="number" name="conversions"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Início</label><input id="ea-start" type="date" name="start_date"/></div>
+        <div class="form-group"><label>Fim</label><input id="ea-end" type="date" name="end_date"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select id="ea-status" name="status">
+            <option value="ativo">Ativo</option>
+            <option value="pausado">Pausado</option>
+            <option value="encerrado">Encerrado</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Observações</label><input id="ea-notes" name="notes"/></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function openEditAd(a) {
+  document.getElementById('edit-ad-form').action = '/anuncios/' + a.id + '/editar';
+  document.getElementById('ea-name').value = a.campaign_name || '';
+  document.getElementById('ea-platform').value = a.platform || '';
+  document.getElementById('ea-budget').value = a.budget || 0;
+  document.getElementById('ea-spent').value = a.spent || 0;
+  document.getElementById('ea-leads').value = a.leads || 0;
+  document.getElementById('ea-conv').value = a.conversions || 0;
+  document.getElementById('ea-start').value = a.start_date || '';
+  document.getElementById('ea-end').value = a.end_date || '';
+  document.getElementById('ea-status').value = a.status || 'ativo';
+  document.getElementById('ea-notes').value = a.notes || '';
+  openModal('modal-edit-ad');
+}
+</script>
+{% endblock %}

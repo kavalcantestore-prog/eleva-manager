@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Calendário — {{ client.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <a href="/calendario" class="btn btn-ghost btn-sm" style="margin-bottom:.5rem"><i class="fa fa-arrow-left"></i> Calendários</a>
+    <h2><i class="fa fa-calendar-days"></i> {{ client.name }}</h2>
+    {% if client.company %}<p class="page-sub">{{ client.company }}</p>{% endif %}
+  </div>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-post')"><i class="fa fa-plus"></i> Novo Post</button>
+</div>
+
+<div class="cal-nav">
+  <a href="/calendario/{{ client.id }}?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-ghost btn-sm"><i class="fa fa-chevron-left"></i></a>
+  <span class="cal-title">{{ month_name }} {{ year }}</span>
+  <a href="/calendario/{{ client.id }}?year={{ next_year }}&month={{ next_month }}" class="btn btn-ghost btn-sm"><i class="fa fa-chevron-right"></i></a>
+</div>
+
+<div class="cal-legend">
+  <span><span class="cal-dot status-planejado"></span> Planejado</span>
+  <span><span class="cal-dot status-criacao"></span> Em criação</span>
+  <span><span class="cal-dot status-aprovado"></span> Aprovado</span>
+  <span><span class="cal-dot status-publicado"></span> Publicado</span>
+</div>
+
+<div class="cal-grid">
+  <div class="cal-header">Dom</div><div class="cal-header">Seg</div>
+  <div class="cal-header">Ter</div><div class="cal-header">Qua</div>
+  <div class="cal-header">Qui</div><div class="cal-header">Sex</div>
+  <div class="cal-header">Sáb</div>
+  {% for week in weeks %}
+    {% for day in week %}
+    <div class="cal-cell {% if day == 0 %}cal-empty{% endif %}">
+      {% if day > 0 %}
+      <span class="cal-day-num clickable-day" onclick="openNewPost('{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}')" title="Adicionar post ou anotação">{{ day }}</span>
+      {% if posts_by_day.get(day) %}
+      <div class="cal-posts">
+        {% for post in posts_by_day[day] %}
+        <div class="cal-post-item status-{{ post.status }}" onclick="showPost({{ post | tojson }})" style="cursor:pointer">
+          <span class="cal-dot status-{{ post.status }}"></span>
+          <span class="cal-post-title">{{ post.title[:18] }}{% if post.title|length > 18 %}…{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<!-- Post List -->
+{% if posts %}
+<div class="card" style="margin-top:1rem">
+  <div class="card-header"><h3><i class="fa fa-list"></i> Posts de {{ month_name }} ({{ posts|length }})</h3></div>
+  <div class="table-scroll"><table class="table">
+    <thead><tr><th>Título</th><th>Plataforma</th><th>Tipo</th><th>Data</th><th>Responsável</th><th>Status</th><th>CEO</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for p in posts %}
+    <tr>
+      <td><strong>{{ p.title }}</strong></td>
+      <td>{{ p.platform or '—' }}</td>
+      <td>{{ p.content_type or '—' }}</td>
+      <td>{{ p.scheduled_date or '—' }}</td>
+      <td>{{ p.responsible or '—' }}</td>
+      <td>
+        <form method="post" action="/calendario/post/{{ p.id }}/status">
+          <input type="hidden" name="client_id" value="{{ client.id }}"/>
+          <input type="hidden" name="year" value="{{ year }}"/>
+          <input type="hidden" name="month" value="{{ month }}"/>
+          <select name="status" onchange="this.form.submit()" class="select-inline">
+            <option value="planejado" {% if p.status=='planejado' %}selected{% endif %}>Planejado</option>
+            <option value="criacao" {% if p.status=='criacao' %}selected{% endif %}>Em criação</option>
+            <option value="aprovado" {% if p.status=='aprovado' %}selected{% endif %}>Aprovado</option>
+            <option value="publicado" {% if p.status=='publicado' %}selected{% endif %}>Publicado</option>
+          </select>
+        </form>
+      </td>
+      <td><span class="creator-badge">{{ p.creator or '—' }}</span></td>
+      <td>
+        <form method="post" action="/calendario/post/{{ p.id }}/deletar" onsubmit="return confirm('Remover post?')">
+          <input type="hidden" name="client_id" value="{{ client.id }}"/>
+          <input type="hidden" name="year" value="{{ year }}"/>
+          <input type="hidden" name="month" value="{{ month }}"/>
+          <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% else %}
+<div class="empty-state" style="margin-top:1rem">
+  <i class="fa fa-calendar-plus"></i>
+  <p>Nenhum post em {{ month_name }}. Clique em <strong>+ Novo Post</strong> para começar.</p>
+</div>
+{% endif %}
+
+<!-- Modal Novo Post -->
+<div id="modal-novo-post" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Novo Post — {{ client.name }}</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/calendario/{{ client.id }}/novo">
+      <div class="form-row">
+        <div class="form-group"><label>Título *</label><input name="title" required/></div>
+        <div class="form-group"><label>Data</label><input type="date" name="scheduled_date"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Plataforma</label>
+          <select name="platform">
+            <option value="">Selecione…</option>
+            <option>Instagram</option><option>Facebook</option><option>LinkedIn</option>
+            <option>TikTok</option><option>YouTube</option><option>Twitter/X</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Tipo de Conteúdo</label>
+          <select name="content_type">
+            <option value="">Selecione…</option>
+            <option>Feed - Imagem</option><option>Feed - Carrossel</option><option>Reels/TikTok</option>
+            <option>Stories</option><option>Story com link</option><option>Live</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Responsável</label><input name="responsible"/></div>
+        <div class="form-group"><label>Status</label>
+          <select name="status">
+            <option value="planejado">Planejado</option><option value="criacao">Em criação</option>
+            <option value="aprovado">Aprovado</option><option value="publicado">Publicado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Copy / Legenda</label><textarea name="copy_text" rows="4" placeholder="Escreva a legenda do post…"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Post detail modal -->
+<div id="modal-post-detail" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3 id="pd-title">Post</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <div style="padding:1.25rem">
+      <div id="pd-meta" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem"></div>
+      <div id="pd-copy" style="background:var(--bg3);padding:1rem;border-radius:8px;white-space:pre-wrap;font-size:.875rem;color:var(--sub);line-height:1.6"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function openNewPost(date) {
+  document.querySelector('input[name="scheduled_date"]').value = date;
+  // Format date for display in modal title
+  const [y, m, d] = date.split('-');
+  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  document.getElementById('modal-novo-post').querySelector('.modal-header h3').textContent =
+    `Novo Post — {{ client.name }} · ${parseInt(d)} de ${months[parseInt(m)-1]}`;
+  openModal('modal-novo-post');
+}
+
+function showPost(p) {
+  document.getElementById('pd-title').textContent = p.title || 'Post';
+  document.getElementById('pd-meta').innerHTML =
+    (p.platform ? `<span class="tag">${p.platform}</span>` : '') +
+    (p.content_type ? `<span class="tag">${p.content_type}</span>` : '') +
+    (p.scheduled_date ? `<span class="tag"><i class="fa fa-calendar"></i> ${p.scheduled_date}</span>` : '') +
+    `<span class="badge badge-${p.status}">${p.status}</span>` +
+    (p.creator ? `<span class="creator-badge"><i class="fa fa-pen"></i> ${p.creator}</span>` : '');
+  document.getElementById('pd-copy').textContent = p.copy_text || 'Sem copy cadastrada.';
+  openModal('modal-post-detail');
+}
+</script>
+{% endblock %}

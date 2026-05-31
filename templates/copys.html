@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Banco de Copys — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-pen-nib"></i> Banco de Copys</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-nova-copy')"><i class="fa fa-plus"></i> Nova Copy</button>
+</div>
+
+<div class="toolbar">
+  <form method="get" action="/copys" class="search-form">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar título, conteúdo…"/>
+    <button type="submit" class="btn btn-sm"><i class="fa fa-search"></i></button>
+    {% if q or copy_type %}<a href="/copys" class="btn btn-sm btn-ghost">Limpar</a>{% endif %}
+  </form>
+  {% if copy_types %}
+  <div class="filter-tabs">
+    <a href="/copys{% if q %}?q={{ q }}{% endif %}" class="tab {% if not copy_type %}active{% endif %}">Todos</a>
+    {% for t in copy_types %}
+    <a href="/copys?copy_type={{ t }}" class="tab {% if copy_type==t %}active{% endif %}">{{ t }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% if copies %}
+<div class="copies-grid">
+  {% for c in copies %}
+  <div class="copy-card">
+    <div class="copy-card-header">
+      <div>
+        <div class="copy-title">{{ c.title }}</div>
+        <div class="copy-meta">
+          {% if c.copy_type %}<span class="tag">{{ c.copy_type }}</span>{% endif %}
+          {% if c.platform %}<span class="tag">{{ c.platform }}</span>{% endif %}
+          {% if c.niche %}<span class="tag">{{ c.niche }}</span>{% endif %}
+          {% if c.client_name %}<span class="tag">{{ c.client_name }}</span>{% endif %}
+        </div>
+      </div>
+      <form method="post" action="/copys/{{ c.id }}/deletar" onsubmit="return confirm('Remover copy?')">
+        <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+      </form>
+    </div>
+    <div class="copy-content">{{ c.content or 'Sem conteúdo.' }}</div>
+    <div class="copy-footer">
+      <span class="creator-badge"><i class="fa fa-pen"></i> {{ c.creator or '—' }}</span>
+      <button class="btn btn-sm btn-ghost" onclick="copyText(this, `{{ c.content | replace('`','\\`') | replace('\n','\\n') }}`)">
+        <i class="fa fa-copy"></i> Copiar
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-pen-nib"></i><p>Nenhuma copy no banco.</p></div>
+{% endif %}
+
+<!-- Modal Nova Copy -->
+<div id="modal-nova-copy" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Nova Copy</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/copys/novo">
+      <div class="form-group"><label>Título *</label><input name="title" required placeholder="Ex: CTA para tráfego frio"/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label>
+          <select name="copy_type">
+            <option value="">Selecione…</option>
+            <option>Anúncio</option><option>Legenda</option><option>Página de Vendas</option>
+            <option>E-mail</option><option>Bio</option><option>CTA</option>
+            <option>WhatsApp</option><option>Headline</option><option>Roteiro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Plataforma</label>
+          <select name="platform">
+            <option value="">Selecione…</option>
+            <option>Instagram</option><option>Facebook</option><option>Google</option>
+            <option>TikTok</option><option>LinkedIn</option><option>E-mail</option><option>WhatsApp</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label>
+          <select name="client_id"><option value="">Geral</option>
+          {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group"><label>Nicho</label><input name="niche" placeholder="Ex: Moda, Saúde, Tech…"/></div>
+      </div>
+      <div class="form-group"><label>Copy *</label><textarea name="content" rows="6" required placeholder="Escreva a copy aqui…"></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.innerHTML = '<i class="fa fa-check"></i> Copiado!';
+    setTimeout(() => btn.innerHTML = '<i class="fa fa-copy"></i> Copiar', 2000);
+  });
+}
+</script>
+{% endblock %}

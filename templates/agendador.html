@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Agendador — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-calendar-check"></i> Agendador de Posts</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-post')"><i class="fa fa-plus"></i> Agendar Post</button>
+</div>
+
+{% if posts %}
+<div class="table-scroll"><table class="table">
+  <thead><tr><th>Plataforma</th><th>Cliente</th><th>Serviços</th><th>Data/Hora</th><th>Conteúdo</th><th>Status</th><th>Responsável</th><th>Ações</th></tr></thead>
+  <tbody>
+  {% for p in posts %}
+  <tr>
+    <td><span class="badge">{{ p.platform }}</span></td>
+    <td>{{ p.client_name or "—" }}</td>
+    <td id="services-sched-{{ p.id }}">
+      {% if p.services %}
+        <script>document.getElementById('services-sched-{{ p.id }}').innerHTML = displayServices('{{ p.services|replace("'", "&apos;") }}');</script>
+      {% else %}—{% endif %}
+    </td>
+    <td><strong>{{ p.scheduled_for }}</strong></td>
+    <td>{{ p.content[:40] }}…</td>
+    <td>
+      <form method="post" action="/agendador/{{ p.id }}/status" style="display:inline">
+        <select name="status" onchange="this.form.submit()" class="select-inline">
+          <option value="agendado" {% if p.status=='agendado' %}selected{% endif %}>Agendado</option>
+          <option value="publicado" {% if p.status=='publicado' %}selected{% endif %}>Publicado</option>
+          <option value="cancelado" {% if p.status=='cancelado' %}selected{% endif %}>Cancelado</option>
+        </select>
+      </form>
+    </td>
+    <td>{{ p.responsible or "—" }}</td>
+    <td><button class="btn btn-sm btn-ghost"><i class="fa fa-eye"></i></button></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<div class="empty-state">
+  <i class="fa fa-calendar-check"></i>
+  <p>Nenhum post agendado ainda.</p>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-post')"><i class="fa fa-plus"></i> Agendar Primeiro</button>
+</div>
+{% endif %}
+
+<!-- Modal Novo Post -->
+<div id="modal-novo-post" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3><i class="fa fa-calendar-check"></i> Agendar Post</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/agendador/novo">
+      <div class="form-group"><label>Cliente</label>
+        <select name="client_id">
+          <option value="">Geral</option>
+          {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Plataforma *</label>
+          <select name="platform" required>
+            <option value="">Selecione…</option>
+            <option>Instagram</option><option>Facebook</option><option>LinkedIn</option>
+            <option>TikTok</option><option>Twitter/X</option><option>YouTube</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Data e Hora *</label><input type="datetime-local" name="scheduled_for" required/></div>
+      </div>
+      <div class="form-group">
+        <label>Serviços</label>
+        <div id="services-selector-sched" class="services-selector"></div>
+        <input type="hidden" id="services-input-sched" name="services" value="[]"/>
+      </div>
+      <div class="form-group"><label>Conteúdo *</label><textarea name="content" rows="4" required placeholder="Escreva a legenda ou conteúdo do post…"></textarea></div>
+      <div class="form-group"><label>Responsável</label><input name="responsible" placeholder="Nome de quem criou o post"/></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Agendar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/multi-select.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initServicesSelector('services-selector-sched', 'services-input-sched', []);
+});
+</script>
+{% endblock %}

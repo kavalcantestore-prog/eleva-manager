@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Clientes — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-users"></i> Clientes</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-cliente')">
+    <i class="fa fa-plus"></i> Novo Cliente
+  </button>
+</div>
+
+<div class="toolbar">
+  <form method="get" action="/clientes" class="search-form">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nome, empresa ou e-mail…"/>
+    <button type="submit" class="btn btn-sm"><i class="fa fa-search"></i></button>
+    {% if q %}<a href="/clientes" class="btn btn-sm btn-ghost">Limpar</a>{% endif %}
+  </form>
+</div>
+
+{% if clients %}
+<div class="table-wrapper"><div class="table-scroll">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Nome</th><th>Empresa</th><th>Segmento</th><th>Serviços</th><th>Contato</th>
+        <th>Valor Contrato</th><th>Entrada</th><th>Status</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in clients %}
+      <tr>
+        <td><strong>{{ c.name }}</strong></td>
+        <td>{{ c.company or '—' }}</td>
+        <td>{{ c.segment or '—' }}</td>
+        <td id="services-{{ c.id }}">
+          {% if c.services %}
+            {% set svc = c.services if c.services is string else c.services|tojson %}
+            <script>document.getElementById('services-{{ c.id }}').innerHTML = displayServices('{{ svc|replace("'", "&apos;") }}');</script>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if c.email %}<div>{{ c.email }}</div>{% endif %}
+          {% if c.phone %}<div class="muted">{{ c.phone }}</div>{% endif %}
+        </td>
+        <td class="money">R$ {{ "%.2f"|format(c.contract_value)|replace(".",",") }}</td>
+        <td>{{ c.entry_date or '—' }}</td>
+        <td><span class="badge badge-{{ c.status }}">{{ c.status }}</span></td>
+        <td class="actions">
+          <a href="/relatorio/{{ c.id }}" class="btn btn-sm btn-ghost" title="Ver Relatório"><i class="fa fa-file-lines"></i></a>
+          <button class="btn btn-sm btn-ghost" onclick="openEdit({{ c | tojson }})">
+            <i class="fa fa-pen"></i>
+          </button>
+          <form method="post" action="/clientes/{{ c.id }}/deletar" style="display:inline"
+                onsubmit="return confirm('Remover cliente?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% else %}
+<div class="empty-state large"><i class="fa fa-users"></i><p>Nenhum cliente encontrado.</p></div>
+{% endif %}
+
+<!-- Modal Novo Cliente -->
+<div id="modal-novo-cliente" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Novo Cliente</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form method="post" action="/clientes/novo">
+      <div class="form-row">
+        <div class="form-group"><label>Nome *</label><input name="name" required/></div>
+        <div class="form-group"><label>Empresa</label><input name="company"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>E-mail</label><input type="email" name="email"/></div>
+        <div class="form-group"><label>Telefone</label><input name="phone"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Segmento</label><input name="segment"/></div>
+        <div class="form-group"><label>Valor do Contrato (R$)</label>
+          <input type="number" step="0.01" name="contract_value" value="0"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Data de Entrada</label>
+          <input type="date" name="entry_date"/>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select name="status">
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+            <option value="prospecto">Prospecto</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Serviços <span style="color:var(--gold)">*</span></label>
+        <div id="services-selector" class="services-selector"></div>
+        <input type="hidden" id="services-input" name="services" value="[]"/>
+      </div>
+      <div class="form-group"><label>Observações</label>
+        <textarea name="notes" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Editar Cliente -->
+<div id="modal-edit-cliente" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Editar Cliente</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form method="post" id="edit-form" action="">
+      <div class="form-row">
+        <div class="form-group"><label>Nome *</label><input id="e-name" name="name" required/></div>
+        <div class="form-group"><label>Empresa</label><input id="e-company" name="company"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>E-mail</label><input id="e-email" type="email" name="email"/></div>
+        <div class="form-group"><label>Telefone</label><input id="e-phone" name="phone"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Segmento</label><input id="e-segment" name="segment"/></div>
+        <div class="form-group"><label>Valor do Contrato (R$)</label>
+          <input id="e-value" type="number" step="0.01" name="contract_value"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Data de Entrada</label>
+          <input id="e-date" type="date" name="entry_date"/>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="e-status" name="status">
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+            <option value="prospecto">Prospecto</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Serviços <span style="color:var(--gold)">*</span></label>
+        <div id="edit-services-selector" class="services-selector"></div>
+        <input type="hidden" id="edit-services-input" name="services" value="[]"/>
+      </div>
+      <div class="form-group"><label>Observações</label>
+        <textarea id="e-notes" name="notes" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/multi-select.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize services selector for new client
+  initServicesSelector('services-selector', 'services-input', []);
+
+  // Initialize on modal open for new client
+  const newClientModal = document.getElementById('modal-novo-cliente');
+  if (newClientModal) {
+    newClientModal.addEventListener('shown', function() {
+      initServicesSelector('services-selector', 'services-input', []);
+    });
+  }
+});
+
+function openEdit(c) {
+  document.getElementById('edit-form').action = '/clientes/' + c.id + '/editar';
+  document.getElementById('e-name').value = c.name || '';
+  document.getElementById('e-company').value = c.company || '';
+  document.getElementById('e-email').value = c.email || '';
+  document.getElementById('e-phone').value = c.phone || '';
+  document.getElementById('e-segment').value = c.segment || '';
+  document.getElementById('e-value').value = c.contract_value || 0;
+  document.getElementById('e-date').value = c.entry_date || '';
+  document.getElementById('e-notes').value = c.notes || '';
+  document.getElementById('e-status').value = c.status || 'ativo';
+
+  // Initialize services selector with existing services
+  const services = c.services ? JSON.parse(c.services) : [];
+  initServicesSelector('edit-services-selector', 'edit-services-input', services);
+
+  openModal('modal-edit-cliente');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Propostas — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-file-contract"></i> Propostas</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-nova-proposta')"><i class="fa fa-plus"></i> Nova Proposta</button>
+</div>
+
+{% if proposals %}
+<div class="table-scroll"><table class="table">
+  <thead><tr><th>Título</th><th>Cliente</th><th>Serviços</th><th>Valor</th><th>Deadline</th><th>Status</th><th>Criada em</th><th>Ações</th></tr></thead>
+  <tbody>
+  {% for p in proposals %}
+  <tr>
+    <td><strong>{{ p.title }}</strong></td>
+    <td>{{ p.client_name or "—" }}</td>
+    <td id="services-prop-{{ p.id }}">
+      {% if p.services %}
+        <script>document.getElementById('services-prop-{{ p.id }}').innerHTML = displayServices('{{ p.services|replace("'", "&apos;") }}');</script>
+      {% else %}—{% endif %}
+    </td>
+    <td><span style="color:var(--gold);font-weight:700">R$ {{ "%.2f"|format(p.total_value) }}</span></td>
+    <td>{{ p.deadline or "—" }}</td>
+    <td>
+      <form method="post" action="/propostas/{{ p.id }}/status" style="display:inline">
+        <select name="status" onchange="this.form.submit()" class="select-inline">
+          <option value="rascunho" {% if p.status=='rascunho' %}selected{% endif %}>Rascunho</option>
+          <option value="enviado" {% if p.status=='enviado' %}selected{% endif %}>Enviado</option>
+          <option value="aceita" {% if p.status=='aceita' %}selected{% endif %}>Aceita</option>
+          <option value="rejeitada" {% if p.status=='rejeitada' %}selected{% endif %}>Rejeitada</option>
+        </select>
+      </form>
+    </td>
+    <td>{{ p.created_at[:10] }}</td>
+    <td><button class="btn btn-sm btn-ghost"><i class="fa fa-eye"></i></button></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<div class="empty-state">
+  <i class="fa fa-file-contract"></i>
+  <p>Nenhuma proposta criada ainda.</p>
+  <button class="btn btn-primary" onclick="openModal('modal-nova-proposta')"><i class="fa fa-plus"></i> Criar Primeira</button>
+</div>
+{% endif %}
+
+<!-- Modal Nova Proposta -->
+<div id="modal-nova-proposta" class="modal">
+  <div class="modal-box">
+    <div class="modal-header"><h3><i class="fa fa-file-contract"></i> Nova Proposta</h3><button onclick="closeModal()"><i class="fa fa-times"></i></button></div>
+    <form method="post" action="/propostas/nova">
+      <div class="form-group"><label>Título *</label><input name="title" required placeholder="Ex: Proposta de Tráfego Pago — GRACE Imóveis"/></div>
+      <div class="form-group"><label>Cliente</label>
+        <select name="client_id">
+          <option value="">Selecione…</option>
+          {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Serviços <span style="color:var(--gold)">*</span></label>
+        <div id="services-selector-prop" class="services-selector"></div>
+        <input type="hidden" id="services-input-prop" name="services" value="[]"/>
+      </div>
+      <div class="form-group"><label>Descrição</label><textarea name="description" rows="2" placeholder="Detalhes adicionais…"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor Total (R$) *</label><input type="number" name="total_value" step="0.01" required placeholder="0.00"/></div>
+        <div class="form-group"><label>Deadline</label><input type="date" name="deadline"/></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/multi-select.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initServicesSelector('services-selector-prop', 'services-input-prop', []);
+});
+</script>
+{% endblock %}

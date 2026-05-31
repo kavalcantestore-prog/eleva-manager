@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Calendários — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-calendar-days"></i> Calendários de Conteúdo</h2>
+  <span class="page-sub">{{ month_name }} {{ year }}</span>
+</div>
+
+{% if clients %}
+<div class="cal-clients-grid">
+  {% for c in clients %}
+  <a href="/calendario/{{ c.id }}" class="cal-client-card">
+    <div class="cal-client-avatar">{{ c.name[0]|upper }}</div>
+    <div class="cal-client-info">
+      <div class="cal-client-name">{{ c.name }}</div>
+      {% if c.company %}<div class="cal-client-company">{{ c.company }}</div>{% endif %}
+      <div class="cal-client-count">
+        <i class="fa fa-calendar-check"></i>
+        {% set n = count_map.get(c.id, 0) %}
+        {% if n > 0 %}
+          <span style="color:var(--gold)">{{ n }} post{{ 's' if n > 1 else '' }} este mês</span>
+        {% else %}
+          <span style="color:var(--muted)">Nenhum post este mês</span>
+        {% endif %}
+      </div>
+    </div>
+    <i class="fa fa-chevron-right" style="color:var(--muted)"></i>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state large">
+  <i class="fa fa-calendar-days"></i>
+  <p>Nenhum cliente ativo ainda.</p>
+  <a href="/clientes" class="btn btn-primary"><i class="fa fa-plus"></i> Adicionar Cliente</a>
+</div>
+{% endif %}
+{% endblock %}

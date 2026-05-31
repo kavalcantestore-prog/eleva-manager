@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}ELEVA Manager{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <div class="topbar-brand">
+      <span class="brand-icon">E</span>
+      <span>ELEVA</span>
+    </div>
+    <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">E</span>
+      <span class="brand-name">ELEVA</span>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section">VISÃO GERAL</li>
+      <li><a href="/" class="{% if request.url.path == '/' %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-chart-line"></i><span>Dashboard</span>
+      </a></li>
+      <li><a href="/atividades" class="{% if '/atividades' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-clock-rotate-left"></i><span>Atividades</span>
+      </a></li>
+
+      <li class="nav-section">COMERCIAL</li>
+      <li><a href="/pipeline" class="{% if '/pipeline' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-filter"></i><span>Pipeline CRM</span>
+      </a></li>
+      <li><a href="/clientes" class="{% if '/clientes' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-users"></i><span>Clientes</span>
+      </a></li>
+      <li><a href="/financeiro" class="{% if '/financeiro' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-wallet"></i><span>Financeiro</span>
+      </a></li>
+
+      <li class="nav-section">INTELIGÊNCIA ARTIFICIAL</li>
+      <li><a href="/chat" class="{% if '/chat' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-comments"></i><span>Chat Assistant</span>
+      </a></li>
+      <li><a href="/ia" class="{% if '/ia' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-wand-magic-sparkles"></i><span>IA — Copy & Imagem</span>
+      </a></li>
+
+      <li class="nav-section">OPERAÇÕES</li>
+      <li><a href="/relatorios" class="{% if '/relatorios' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-file-pdf"></i><span>Relatórios</span>
+      </a></li>
+      <li><a href="/propostas" class="{% if '/propostas' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-file-contract"></i><span>Propostas</span>
+      </a></li>
+      <li><a href="/agendador" class="{% if '/agendador' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-calendar-check"></i><span>Agendador</span>
+      </a></li>
+      <li><a href="/projetos" class="{% if '/projetos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-briefcase"></i><span>Projetos</span>
+      </a></li>
+      <li><a href="/calendario" class="{% if '/calendario' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-calendar-days"></i><span>Calendário</span>
+      </a></li>
+      <li><a href="/copys" class="{% if '/copys' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-pen-nib"></i><span>Copys</span>
+      </a></li>
+      <li><a href="/anuncios" class="{% if '/anuncios' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-bullhorn"></i><span>Anúncios</span>
+      </a></li>
+      <li><a href="/proximos-passos" class="{% if '/proximos-passos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-list-check"></i><span>Próximos Passos</span>
+      </a></li>
+
+      <li class="nav-section">EMPRESA</li>
+      <li><a href="/investimentos" class="{% if '/investimentos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-coins"></i><span>Investimentos</span>
+      </a></li>
+      <li><a href="/prolabore" class="{% if '/prolabore' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-money-bill-wave"></i><span>Pró-Labore</span>
+      </a></li>
+      {% if user.role == 'admin' %}
+      <li><a href="/membros" class="{% if '/membros' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-users"></i><span>Membros</span>
+      </a></li>
+      <li><a href="/usuarios" class="{% if '/usuarios' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-user-shield"></i><span>Usuários</span>
+      </a></li>
+      {% endif %}
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ user.name[0]|upper }}</div>
+      <div class="user-info">
+        <span class="user-name">{{ user.name }}</span>
+        <span class="user-role">{{ user.role }}</span>
+      </div>
+      <a href="/logout" class="logout-btn" title="Sair"><i class="fa fa-sign-out-alt"></i></a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+
+  <script src="/static/js/main.js"></script>
+  <script src="/static/js/multi-select.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
