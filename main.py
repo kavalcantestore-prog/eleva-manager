@@ -865,11 +865,12 @@ async def ceo_novo_usuario(request: Request):
     conn = get_db()
     try:
         from database import create_user_permissions
-        conn.execute(
+        cursor = conn.cursor()
+        cursor.execute(
             "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
             (name, email, hash_password(password), "funcionario")
         )
-        new_user_id = conn.cursor().lastrowid
+        new_user_id = cursor.lastrowid
         create_user_permissions(conn, new_user_id, is_admin=False)
         log_action(conn, user, "criou", "usuário funcionário", f"{name} ({email})")
         conn.commit()
