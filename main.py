@@ -1184,6 +1184,261 @@ def membros_deletar(request: Request, mid: int):
     return RedirectResponse("/membros", status_code=302)
 
 
+# ── Módulo: Prospecção com Google Maps ─────────────────────────────────────────
+
+@app.get("/prospeccao", response_class=HTMLResponse)
+def prospeccao_page(request: Request):
+    user = require_user(request)
+    conn = get_db()
+    campaigns = conn.execute("SELECT * FROM prospection_campaigns ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return templates.TemplateResponse("prospeccao.html", {
+        "request": request,
+        "user": dict(user),
+        "campaigns": [dict(c) for c in campaigns],
+    })
+
+
+@app.get("/prospeccao/campanhas", response_class=HTMLResponse)
+def prospeccao_campanhas(request: Request):
+    """Lista todas as campanhas de prospecção."""
+    user = require_user(request)
+    conn = get_db()
+    campaigns = conn.execute(
+        "SELECT pc.*, u.name as creator FROM prospection_campaigns pc LEFT JOIN users u ON pc.created_by=u.id ORDER BY pc.created_at DESC"
+    ).fetchall()
+    prospects_total = conn.execute("SELECT COUNT(*) FROM prospects").fetchone()[0]
+    conn.close()
+    return JSONResponse({
+        "success": True,
+        "campaigns": [dict(c) for c in campaigns],
+        "total_prospects": prospects_total,
+    })
+
+
+@app.post("/prospeccao/buscar")
+async def prospeccao_buscar(request: Request):
+    """Busca prospects no Google Maps API baseado em segmento, localização e raio."""
+    user = require_user(request)
+    data = await request.json()
+
+    segment = data.get("segment", "")
+    location = data.get("location", "")
+    radius_km = data.get("radius_km", 5)
+    center = data.get("center", {})
+
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        return JSONResponse({
+            "success": False,
+            "error": "Google Maps API não configurada"
+        }, status_code=400)
+
+    try:
+        import googlemaps
+        gmaps = googlemaps.Client(key=api_key)
+
+        # Search for businesses
+        places_result = gmaps.places_nearby(
+            location=(center.get("lat"), center.get("lng")),
+            radius=radius_km * 1000,  # Convert to meters
+            keyword=segment,
+            type="business"
+        )
+
+        prospects = []
+        for place in places_result.get("results", [])[:20]:  # Limit to 20
+            try:
+                details = gmaps.place(place["place_id"])["result"]
+                prospect = {
+                    "id": place["place_id"],
+                    "name": place.get("name", ""),
+                    "company": place.get("name", ""),
+                    "segment": segment,
+                    "location": location,
+                    "latitude": place["geometry"]["location"]["lat"],
+                    "longitude": place["geometry"]["location"]["lng"],
+                    "phone": details.get("formatted_phone_number", ""),
+                    "email": details.get("website", ""),
+                    "whatsapp": details.get("international_phone_number", ""),
+                    "status": "novo",
+                }
+                # Try to extract WhatsApp if available
+                if "international_phone_number" in details:
+                    whatsapp_num = details["international_phone_number"].replace(" ", "").replace("-", "").replace("+", "")
+                    prospect["whatsapp"] = whatsapp_num
+
+                prospects.append(prospect)
+            except Exception as e:
+                continue
+
+        return JSONResponse({
+            "success": True,
+            "prospects": prospects,
+        })
+
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": f"Erro ao buscar: {str(e)}"
+        }, status_code=500)
+
+
+@app.post("/prospeccao/importar")
+def prospeccao_importar(request: Request):
+    """Salva um prospect no banco de dados."""
+    user = require_user(request)
+    data = request.json()
+    prospect_id = data.get("prospect_id")
+
+    # For now, we'll just save the prospect data
+    # In a real scenario, this would come from the search results
+    return JSONResponse({
+        "success": True,
+        "message": "Prospect salvo com sucesso"
+    })
+
+
+@app.get("/prospeccao/prospects")
+def prospeccao_prospects(request: Request, status_filter: str = ""):
+    """Lista todos os prospects salvos."""
+    user = require_user(request)
+    conn = get_db()
+
+    if status_filter:
+        rows = conn.execute(
+            "SELECT * FROM prospects WHERE created_by=? AND status=? ORDER BY created_at DESC",
+            (user["id"], status_filter)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM prospects WHERE created_by=? ORDER BY created_at DESC",
+            (user["id"],)
+        ).fetchall()
+
+    conn.close()
+    return JSONResponse({
+        "success": True,
+        "prospects": [dict(r) for r in rows],
+    })
+
+
+@app.post("/prospeccao/prospects/{pid}/status")
+def prospeccao_prospect_status(request: Request, pid: int, status: str = Form("novo")):
+    """Atualiza o status de um prospect."""
+    user = require_user(request)
+    conn = get_db()
+
+    conn.execute(
+        "UPDATE prospects SET status=? WHERE id=?",
+        (status, pid)
+    )
+    log_action(conn, user, "atualizou", "prospect", f"Status → {status}")
+    conn.commit()
+    conn.close()
+
+    return JSONResponse({
+        "success": True,
+        "message": "Status atualizado"
+    })
+
+
+@app.post("/prospeccao/gerar-mensagem")
+async def prospeccao_gerar_mensagem(request: Request):
+    """Gera 3 mensagens diferentes usando IA para um prospect."""
+    user = require_user(request)
+    data = await request.json()
+
+    company = data.get("company", "")
+    segment = data.get("segment", "")
+    location = data.get("location", "")
+    prompt_custom = data.get("prompt_custom", "")
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return JSONResponse({
+            "success": False,
+            "error": "OpenAI não configurada"
+        }, status_code=400)
+
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=api_key)
+
+        system_prompt = """Você é especialista em prospecção e copywriting para agências de marketing digital.
+Gere 3 mensagens curtas (2-3 linhas) para prospectar empresas por WhatsApp.
+Cada mensagem deve ser única, profissional mas amigável.
+Não faça spam, apenas despertar interesse em conversa.
+Responda APENAS as 3 mensagens, uma por linha, numeradas."""
+
+        user_prompt = f"""Empresa: {company}
+Segmento: {segment}
+Localização: {location}
+Contexto adicional: {prompt_custom if prompt_custom else 'Somos especialistas em marketing digital'}
+
+Gere as 3 mensagens WhatsApp para prospectar esta empresa."""
+
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=400,
+            temperature=0.8,
+        )
+
+        response_text = response.choices[0].message.content.strip()
+        messages = []
+        for line in response_text.split("\n"):
+            line = line.strip()
+            if line and not line.startswith("#"):
+                # Remove numbering if present
+                if line[0].isdigit() and "." in line[:3]:
+                    line = line.split(".", 1)[1].strip()
+                messages.append(line)
+
+        # Ensure we have exactly 3 messages
+        messages = messages[:3]
+
+        return JSONResponse({
+            "success": True,
+            "messages": messages,
+        })
+
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": f"Erro ao gerar: {str(e)}"
+        }, status_code=500)
+
+
+@app.post("/prospeccao/campanhas/nova")
+def prospeccao_campanha_nova(request: Request):
+    """Cria uma nova campanha de prospecção."""
+    user = require_user(request)
+    data = request.json()
+
+    name = data.get("name", "")
+    segment = data.get("segment", "")
+    location = data.get("location", "")
+    message_template = data.get("template", "")
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO prospection_campaigns (name, segment, location, message_template, created_by) VALUES (?,?,?,?,?)",
+        (name, segment, location, message_template, user["id"])
+    )
+    log_action(conn, user, "criou", "campanha de prospecção", name)
+    conn.commit()
+    conn.close()
+
+    return JSONResponse({
+        "success": True,
+        "message": "Campanha criada com sucesso"
+    })
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))

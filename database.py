@@ -252,6 +252,39 @@ def init_db():
             created_by INTEGER,
             created_at TEXT DEFAULT (datetime('now','localtime'))
         );
+
+        CREATE TABLE IF NOT EXISTS prospects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            company TEXT,
+            segment TEXT,
+            location TEXT,
+            latitude REAL,
+            longitude REAL,
+            email TEXT,
+            phone TEXT,
+            whatsapp TEXT,
+            status TEXT DEFAULT 'novo',
+            message_sent TEXT,
+            contacted_at TEXT,
+            notes TEXT,
+            created_by INTEGER,
+            created_at TEXT DEFAULT (datetime('now','localtime'))
+        );
+
+        CREATE TABLE IF NOT EXISTS prospection_campaigns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            segment TEXT,
+            location TEXT,
+            radius_km INTEGER DEFAULT 5,
+            message_template TEXT,
+            status TEXT DEFAULT 'ativa',
+            prospects_count INTEGER DEFAULT 0,
+            messages_sent INTEGER DEFAULT 0,
+            created_by INTEGER,
+            created_at TEXT DEFAULT (datetime('now','localtime'))
+        );
     """)
 
     row = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]

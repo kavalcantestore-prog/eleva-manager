@@ -35,6 +35,9 @@
       </a></li>
 
       <li class="nav-section">COMERCIAL</li>
+      <li><a href="/prospeccao" class="{% if '/prospeccao' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-map-location-dot"></i><span>Prospecção</span>
+      </a></li>
       <li><a href="/pipeline" class="{% if '/pipeline' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-filter"></i><span>Pipeline CRM</span>
       </a></li>
