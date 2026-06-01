@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+{% block title %}Distribuição de Receita — ELEVA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-chart-pie"></i> Distribuição de Receita</h2>
+  <p style="color: var(--muted); margin-top: 0.5rem;">Política financeira automática por contrato</p>
+</div>
+
+<div class="distribuicao-container">
+  <!-- Cards de Saldos -->
+  <div class="saldos-grid">
+    <div class="saldo-card">
+      <div class="saldo-icon ceo">💰</div>
+      <div class="saldo-content">
+        <div class="saldo-label">Pró-labore CEOs</div>
+        <div class="saldo-valor">{{ "%.2f"|format(balances.get('ceo_prolabore', 0)) }}</div>
+        <div class="saldo-percent">40% de cada contrato</div>
+      </div>
+    </div>
+
+    <div class="saldo-card">
+      <div class="saldo-icon cashbox">🏦</div>
+      <div class="saldo-content">
+        <div class="saldo-label">Caixa da Empresa</div>
+        <div class="saldo-valor">{{ "%.2f"|format(balances.get('company_cashbox', 0)) }}</div>
+        <div class="saldo-percent">30% de cada contrato</div>
+      </div>
+    </div>
+
+    <div class="saldo-card">
+      <div class="saldo-icon investment">🚀</div>
+      <div class="saldo-content">
+        <div class="saldo-label">Investimento e Expansão</div>
+        <div class="saldo-valor">{{ "%.2f"|format(balances.get('investment_expansion', 0)) }}</div>
+        <div class="saldo-percent">20% de cada contrato</div>
+      </div>
+    </div>
+
+    <div class="saldo-card">
+      <div class="saldo-icon profit">📈</div>
+      <div class="saldo-content">
+        <div class="saldo-label">Lucro Acumulado</div>
+        <div class="saldo-valor">{{ "%.2f"|format(balances.get('accumulated_profit', 0)) }}</div>
+        <div class="saldo-percent">10% de cada contrato</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total -->
+  <div class="card" style="margin-top: 2rem;">
+    <div class="card-row">
+      <div>
+        <h3 style="margin: 0; color: var(--gold);">Total Distribuído</h3>
+        <p style="color: var(--muted); margin: 0.5rem 0 0 0;">Desde o início</p>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 2rem; font-weight: bold; color: var(--gold);">R$ {{ "%.2f"|format(total_distributed) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribuir Receita -->
+  <div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+      <h3><i class="fa fa-plus-circle"></i> Distribuir Receita Manual</h3>
+    </div>
+    <form onsubmit="distribuirReceita(event)">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label for="client-name">Nome do Cliente</label>
+          <input type="text" id="client-name" placeholder="Ex: Acme Corporation"/>
+        </div>
+        <div class="form-group">
+          <label for="contract-value">Valor do Contrato *</label>
+          <input type="number" id="contract-value" step="0.01" placeholder="R$ 0,00" required/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Observações</label>
+        <textarea id="notes" rows="2" placeholder="Ex: Contrato #123, Ref: Pipeline"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="fa fa-calculator"></i> Distribuir Receita
+      </button>
+    </form>
+  </div>
+
+  <!-- Distribution Preview -->
+  <div id="distribution-preview" style="display: none; margin-top: 2rem;">
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fa fa-eye"></i> Pré-visualização da Distribuição</h3>
+      </div>
+      <div class="distribution-breakdown">
+        <div class="breakdown-item">
+          <div class="breakdown-label">💰 Pró-labore CEOs (40%)</div>
+          <div class="breakdown-value" id="preview-ceo">R$ 0,00</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">🏦 Caixa da Empresa (30%)</div>
+          <div class="breakdown-value" id="preview-cashbox">R$ 0,00</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">🚀 Investimento e Expansão (20%)</div>
+          <div class="breakdown-value" id="preview-investment">R$ 0,00</div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-label">📈 Lucro Acumulado (10%)</div>
+          <div class="breakdown-value" id="preview-profit">R$ 0,00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Histórico -->
+  <div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+      <h3><i class="fa fa-history"></i> Histórico de Distribuições</h3>
+    </div>
+
+    {% if history %}
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Cliente</th>
+            <th>Valor</th>
+            <th>Pró-labore</th>
+            <th>Caixa</th>
+            <th>Investimento</th>
+            <th>Lucro</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in history %}
+          <tr>
+            <td><small>{{ item.distributed_at[:10] }}</small></td>
+            <td><strong>{{ item.client_name or '—' }}</strong></td>
+            <td>R$ {{ "%.2f"|format(item.contract_value) }}</td>
+            <td>R$ {{ "%.2f"|format(item.ceo_prolabore) }}</td>
+            <td>R$ {{ "%.2f"|format(item.company_cashbox) }}</td>
+            <td>R$ {{ "%.2f"|format(item.investment_expansion) }}</td>
+            <td>R$ {{ "%.2f"|format(item.accumulated_profit) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="padding: 2rem; text-align: center; color: var(--muted);">
+      <p><i class="fa fa-inbox" style="font-size: 2rem; opacity: 0.5;"></i></p>
+      <p>Nenhuma distribuição realizada ainda</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.distribuicao-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.saldos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.saldo-card {
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  transition: all 0.3s;
+  cursor: default;
+}
+
+.saldo-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 4px 12px rgba(201, 160, 54, 0.15);
+}
+
+.saldo-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.saldo-content {
+  flex: 1;
+}
+
+.saldo-label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.saldo-valor {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--gold);
+  margin-bottom: 0.25rem;
+}
+
+.saldo-percent {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1rem;
+  border-bottom: 2px solid var(--gold);
+  background: var(--bg3);
+}
+
+.card-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+}
+
+form {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(201, 160, 54, 0.1);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.btn-primary:hover {
+  background: var(--gold-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(201, 160, 54, 0.3);
+}
+
+.distribution-breakdown {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.breakdown-item {
+  padding: 1rem;
+  background: var(--bg3);
+  border-radius: 8px;
+  border-left: 4px solid var(--gold);
+}
+
+.breakdown-label {
+  color: var(--text);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.breakdown-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--gold);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  padding: 1rem;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg3);
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr:hover {
+  background: var(--bg3);
+}
+
+@media (max-width: 768px) {
+  .saldos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .distribution-breakdown {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+const contractValueInput = document.getElementById('contract-value');
+
+contractValueInput.addEventListener('input', () => {
+  const value = parseFloat(contractValueInput.value) || 0;
+
+  if (value > 0) {
+    const distribution = {
+      ceo: value * 0.40,
+      cashbox: value * 0.30,
+      investment: value * 0.20,
+      profit: value * 0.10
+    };
+
+    document.getElementById('preview-ceo').textContent = `R$ ${distribution.ceo.toFixed(2)}`;
+    document.getElementById('preview-cashbox').textContent = `R$ ${distribution.cashbox.toFixed(2)}`;
+    document.getElementById('preview-investment').textContent = `R$ ${distribution.investment.toFixed(2)}`;
+    document.getElementById('preview-profit').textContent = `R$ ${distribution.profit.toFixed(2)}`;
+
+    document.getElementById('distribution-preview').style.display = 'block';
+  } else {
+    document.getElementById('distribution-preview').style.display = 'none';
+  }
+});
+
+async function distribuirReceita(event) {
+  event.preventDefault();
+
+  const contractValue = parseFloat(document.getElementById('contract-value').value);
+  const clientName = document.getElementById('client-name').value;
+  const notes = document.getElementById('notes').value;
+
+  if (!contractValue || contractValue <= 0) {
+    alert('Digite um valor válido');
+    return;
+  }
+
+  const btn = event.target.querySelector('button');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Distribuindo...';
+
+  try {
+    const response = await fetch('/api/distribuir-receita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contract_value: contractValue,
+        client_name: clientName,
+        notes: notes
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert('Erro: ' + (data.error || 'Falha ao distribuir'));
+    }
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+</script>
+{% endblock %}

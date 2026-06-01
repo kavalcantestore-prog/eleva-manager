@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from database import init_db, get_db, log_action, create_notification
+from database import init_db, get_db, log_action, create_notification, distribute_revenue
 from auth import (
     create_session, get_current_user, require_user,
     authenticate_user, hash_password, SESSION_COOKIE
@@ -253,6 +253,85 @@ def prolabore_deletar(request: Request, pid: int):
     log_action(conn, user, "removeu", "pró-labore", f"ID {pid}")
     conn.commit(); conn.close()
     return RedirectResponse("/prolabore", status_code=302)
+
+
+# ── Distribuição de Receita ────────────────────────────────────────────────────
+
+@app.get("/distribuicao-receita", response_class=HTMLResponse)
+def distribuicao_receita_page(request: Request):
+    user = require_user(request)
+    conn = get_db()
+
+    # Get sector balances
+    balances = conn.execute("SELECT * FROM sector_balance ORDER BY sector").fetchall()
+    balance_dict = {row['sector']: row['total_accumulated'] for row in balances}
+
+    # Get distribution history
+    history = conn.execute("""
+        SELECT * FROM revenue_distribution
+        ORDER BY distributed_at DESC
+        LIMIT 50
+    """).fetchall()
+
+    conn.close()
+
+    return templates.TemplateResponse("distribuicao_receita.html", {
+        "request": request,
+        "user": dict(user),
+        "balances": balance_dict,
+        "history": [dict(h) for h in history],
+        "total_distributed": sum(balance_dict.values())
+    })
+
+
+@app.post("/api/distribuir-receita")
+async def distribuir_receita(request: Request):
+    user = require_user(request)
+    data = await request.json()
+
+    contract_value = data.get("contract_value", 0)
+    client_name = data.get("client_name", "")
+    related_entity = data.get("related_entity")
+    related_id = data.get("related_id")
+    notes = data.get("notes", "")
+
+    if contract_value <= 0:
+        return JSONResponse({"error": "Valor deve ser maior que zero"}, status_code=400)
+
+    conn = get_db()
+    try:
+        distribution = distribute_revenue(
+            conn, contract_value, client_name,
+            related_entity, related_id, user["id"], notes
+        )
+        return JSONResponse({
+            "success": True,
+            "distribution": distribution,
+            "message": f"Receita de R$ {contract_value:.2f} distribuída com sucesso!"
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/saldos-setores")
+def get_saldos_setores(request: Request):
+    user = require_user(request)
+    conn = get_db()
+    balances = conn.execute("SELECT * FROM sector_balance").fetchall()
+    conn.close()
+
+    sectors_labels = {
+        "ceo_prolabore": "Pró-labore CEOs",
+        "company_cashbox": "Caixa da Empresa",
+        "investment_expansion": "Investimento e Expansão",
+        "accumulated_profit": "Lucro Acumulado"
+    }
+
+    return JSONResponse([{
+        "sector": sectors_labels.get(b['sector'], b['sector']),
+        "value": b['total_accumulated'],
+        "percentage": ["40%", "30%", "20%", "10%"][["ceo_prolabore", "company_cashbox", "investment_expansion", "accumulated_profit"].index(b['sector'])]
+    } for b in balances])
 
 
 # ── Anúncios ──────────────────────────────────────────────────────────────────

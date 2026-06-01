@@ -128,6 +128,11 @@
         <i class="fa fa-money-bill-wave"></i><span>Pró-Labore</span>
       </a></li>
       {% endif %}
+      {% if user.role in ['admin', 'ceo'] %}
+      <li><a href="/distribuicao-receita" class="{% if '/distribuicao' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-chart-pie"></i><span>Distribuição de Receita</span>
+      </a></li>
+      {% endif %}
       {% if user.role == 'admin' %}
       <li><a href="/membros" class="{% if '/membros' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-users"></i><span>Membros</span>

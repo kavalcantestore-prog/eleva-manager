@@ -325,6 +325,33 @@ def init_db():
 
         CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
         CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+
+        CREATE TABLE IF NOT EXISTS revenue_distribution (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            contract_value REAL NOT NULL,
+            client_name TEXT,
+            related_entity TEXT,
+            related_id INTEGER,
+            ceo_prolabore REAL DEFAULT 0,
+            company_cashbox REAL DEFAULT 0,
+            investment_expansion REAL DEFAULT 0,
+            accumulated_profit REAL DEFAULT 0,
+            distributed_at TEXT DEFAULT (datetime('now','localtime')),
+            created_by INTEGER,
+            notes TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS sector_balance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sector TEXT UNIQUE NOT NULL,
+            total_accumulated REAL DEFAULT 0,
+            last_updated TEXT DEFAULT (datetime('now','localtime'))
+        );
+
+        INSERT OR IGNORE INTO sector_balance (sector, total_accumulated) VALUES ('ceo_prolabore', 0);
+        INSERT OR IGNORE INTO sector_balance (sector, total_accumulated) VALUES ('company_cashbox', 0);
+        INSERT OR IGNORE INTO sector_balance (sector, total_accumulated) VALUES ('investment_expansion', 0);
+        INSERT OR IGNORE INTO sector_balance (sector, total_accumulated) VALUES ('accumulated_profit', 0);
     """)
 
     row = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -388,3 +415,34 @@ def create_notification(conn, user_id: int, title: str, message: str, notificati
         (user_id, title, message, notification_type, related_entity, related_id)
     )
     conn.commit()
+
+
+def distribute_revenue(conn, contract_value: float, client_name: str = "", related_entity: str = None, related_id: int = None, user_id: int = None, notes: str = ""):
+    """Distribute revenue according to policy: 40% CEO, 30% Cashbox, 20% Investment, 10% Profit."""
+    ceo_prolabore = contract_value * 0.40
+    company_cashbox = contract_value * 0.30
+    investment_expansion = contract_value * 0.20
+    accumulated_profit = contract_value * 0.10
+
+    # Insert distribution record
+    conn.execute(
+        """INSERT INTO revenue_distribution
+        (contract_value, client_name, related_entity, related_id, ceo_prolabore, company_cashbox, investment_expansion, accumulated_profit, created_by, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (contract_value, client_name, related_entity, related_id, ceo_prolabore, company_cashbox, investment_expansion, accumulated_profit, user_id, notes)
+    )
+
+    # Update sector balances
+    conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated + ? WHERE sector = 'ceo_prolabore'", (ceo_prolabore,))
+    conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated + ? WHERE sector = 'company_cashbox'", (company_cashbox,))
+    conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated + ? WHERE sector = 'investment_expansion'", (investment_expansion,))
+    conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated + ? WHERE sector = 'accumulated_profit'", (accumulated_profit,))
+
+    conn.commit()
+
+    return {
+        "ceo_prolabore": ceo_prolabore,
+        "company_cashbox": company_cashbox,
+        "investment_expansion": investment_expansion,
+        "accumulated_profit": accumulated_profit
+    }
