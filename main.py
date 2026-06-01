@@ -820,7 +820,8 @@ async def gerar_contrato_pdf(request: Request):
 
     # Generate PDF with FPDF
     try:
-        pdf = generate_contract_pdf(dict(client), services, due_date, custom_terms, user)
+        client_dict = {k: client[k] for k in client.keys()}
+        pdf = generate_contract_pdf(client_dict, services, due_date, custom_terms, user)
         pdf_bytes = pdf.output()
 
         # Create response with PDF
