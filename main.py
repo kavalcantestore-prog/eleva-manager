@@ -789,8 +789,6 @@ def gerar_contrato_page(request: Request):
 
 @app.post("/contratos/gerar-pdf")
 async def gerar_contrato_pdf(request: Request):
-    from fpdf import FPDF
-    import base64
     import json
 
     user = require_user(request)
@@ -818,23 +816,51 @@ async def gerar_contrato_pdf(request: Request):
     if not row:
         return JSONResponse({"error": "Cliente não encontrado"}, status_code=404)
 
-    # Convert sqlite3.Row to dict
-    client_data = dict(row) if hasattr(row, 'keys') else dict(zip(row.keys(), row))
+    # Simple dict conversion
+    client_data = {key: row[key] for key in row.keys()}
 
-    # Generate PDF with FPDF
-    try:
-        pdf = generate_contract_pdf(client_data, services, due_date, custom_terms, user)
-        pdf_bytes = pdf.output()
+    # Generate HTML (browser prints as PDF)
+    services_html = "".join([f"<li>{s}</li>" for s in services])
+    client_name = client_data.get('name', 'Cliente')
 
-        # Create response with PDF
-        return JSONResponse({
-            "success": True,
-            "pdf_base64": base64.b64encode(pdf_bytes).decode(),
-            "filename": f"Contrato_{client['name'].replace(' ', '_')}.pdf"
-        })
-    except Exception as e:
-        print(f"Error generating PDF: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+    html = f"""
+    <html>
+    <head>
+        <title>Contrato - {client_name}</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }}
+            h1 {{ text-align: center; color: #C9A036; font-size: 18px; }}
+            .section {{ margin: 20px 0; }}
+            .section-title {{ color: #C9A036; font-weight: bold; margin: 15px 0 10px 0; }}
+            ul {{ margin: 10px 0; }}
+            @media print {{ body {{ margin: 0; }} }}
+        </style>
+    </head>
+    <body>
+        <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
+        <div class="section">
+            <div class="section-title">1. PARTES CONTRATANTES</div>
+            Contratante: ELEVA<br/>
+            Contratado: {client_data.get('name', 'N/A')}<br/>
+            Email: {client_data.get('email', 'N/A')}<br/>
+            Telefone: {client_data.get('phone', 'N/A')}<br/>
+            Empresa: {client_data.get('company', 'N/A')}
+        </div>
+        <div class="section">
+            <div class="section-title">2. SERVIÇOS A SEREM PRESTADOS</div>
+            <ul>{services_html}</ul>
+        </div>
+        <div class="section">
+            <div class="section-title">3. VIGÊNCIA</div>
+            Até: {due_date or 'Data a definir'}
+        </div>
+        {f'<div class="section"><div class="section-title">4. CLÁUSULAS ADICIONAIS</div>{custom_terms}</div>' if custom_terms else ''}
+        <script>window.print();</script>
+    </body>
+    </html>
+    """
+
+    return HTMLResponse(html)
 
 
 def generate_contract_pdf(client, services, due_date, custom_terms, user):
