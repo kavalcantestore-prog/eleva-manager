@@ -146,8 +146,16 @@ def cliente_novo(request: Request, name: str = Form(...), email: str = Form(""),
     user = require_user(request)
     conn = get_db()
     if not entry_date: entry_date = datetime.now().strftime("%Y-%m-%d")
-    conn.execute("INSERT INTO clients (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,user["id"]))
-    log_action(conn, user, "criou", "cliente", f"Cliente: {name}")
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO clients (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,user["id"]))
+    client_id = cursor.lastrowid
+
+    # Auto-distribute revenue if contract_value > 0
+    if contract_value > 0:
+        distribute_revenue(conn, contract_value, name, "cliente", client_id, user["id"], f"Auto-distribuição ao criar cliente")
+        create_notification(conn, user["id"], "Receita Distribuída", f"Receita de R$ {contract_value:.2f} foi automaticamente distribuída para o cliente {name}", "distribuicao", "cliente", client_id)
+
+    log_action(conn, user, "criou", "cliente", f"Cliente: {name} (R$ {contract_value:.2f})")
     conn.commit(); conn.close()
     return RedirectResponse("/clientes", status_code=302)
 
@@ -156,8 +164,19 @@ def cliente_novo(request: Request, name: str = Form(...), email: str = Form(""),
 def cliente_editar(request: Request, cid: int, name: str = Form(...), email: str = Form(""), phone: str = Form(""), company: str = Form(""), segment: str = Form(""), services: str = Form("[]"), contract_value: float = Form(0), status: str = Form("ativo"), entry_date: str = Form(""), notes: str = Form("")):
     user = require_user(request)
     conn = get_db()
+
+    # Check old contract value to detect changes
+    old_client = conn.execute("SELECT contract_value FROM clients WHERE id=?", (cid,)).fetchone()
+    old_value = old_client['contract_value'] if old_client else 0
+
     conn.execute("UPDATE clients SET name=?,email=?,phone=?,company=?,segment=?,services=?,contract_value=?,status=?,entry_date=?,notes=? WHERE id=?", (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,cid))
-    log_action(conn, user, "editou", "cliente", f"Cliente: {name}")
+
+    # Auto-distribute if contract value was updated and is now > 0
+    if contract_value > 0 and contract_value != old_value:
+        distribute_revenue(conn, contract_value, name, "cliente", cid, user["id"], f"Auto-distribuição ao atualizar cliente (anterior: R$ {old_value:.2f})")
+        create_notification(conn, user["id"], "Receita Distribuída", f"Receita de R$ {contract_value:.2f} foi automaticamente distribuída para {name}", "distribuicao", "cliente", cid)
+
+    log_action(conn, user, "editou", "cliente", f"Cliente: {name} (R$ {contract_value:.2f})")
     conn.commit(); conn.close()
     return RedirectResponse("/clientes", status_code=302)
 
@@ -171,6 +190,44 @@ def cliente_deletar(request: Request, cid: int):
     if row: log_action(conn, user, "removeu", "cliente", f"Cliente: {row['name']}")
     conn.commit(); conn.close()
     return RedirectResponse("/clientes", status_code=302)
+
+
+@app.post("/api/clientes/{cid}/distribuir-receita")
+async def distribuir_receita_cliente(request: Request, cid: int):
+    user = require_user(request)
+    conn = get_db()
+
+    client = conn.execute("SELECT * FROM clients WHERE id=?", (cid,)).fetchone()
+
+    if not client:
+        conn.close()
+        return JSONResponse({"error": "Cliente não encontrado"}, status_code=404)
+
+    contract_value = client['contract_value']
+
+    if contract_value <= 0:
+        conn.close()
+        return JSONResponse({"error": "Cliente não tem valor de contrato definido"}, status_code=400)
+
+    try:
+        distribution = distribute_revenue(
+            conn, contract_value, client['name'],
+            "cliente", cid, user["id"],
+            f"Cliente: {client['company'] or client['name']}"
+        )
+
+        # Log action
+        log_action(conn, user, "distribuiu receita de", "cliente", f"{client['name']} - R$ {contract_value:.2f}")
+
+        return JSONResponse({
+            "success": True,
+            "distribution": distribution,
+            "message": f"Receita de R$ {contract_value:.2f} ({client['name']}) distribuída com sucesso!"
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        conn.close()
 
 
 # ── Investimentos ─────────────────────────────────────────────────────────────
