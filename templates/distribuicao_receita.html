@@ -3,8 +3,15 @@
 
 {% block content %}
 <div class="page-header">
-  <h2><i class="fa fa-chart-pie"></i> Distribuição de Receita</h2>
-  <p style="color: var(--muted); margin-top: 0.5rem;">Política financeira automática por contrato</p>
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+    <div>
+      <h2><i class="fa fa-chart-pie"></i> Distribuição de Receita</h2>
+      <p style="color: var(--muted); margin-top: 0.5rem;">Política financeira automática por contrato</p>
+    </div>
+    <button class="btn btn-primary" onclick="sincronizarClientes()" title="Distribuir clientes não processados">
+      <i class="fa fa-sync"></i> Sincronizar Clientes
+    </button>
+  </div>
 </div>
 
 <div class="distribuicao-container">
@@ -428,6 +435,38 @@ async function distribuirReceita(event) {
     }
   } catch (e) {
     alert('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+async function sincronizarClientes() {
+  const msg = 'Deseja sincronizar todos os clientes não processados?\n\nIsso distribuirá a receita de todos os clientes cadastrados que ainda não foram processados.';
+
+  if (!confirm(msg)) return;
+
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Sincronizando...';
+
+  try {
+    const response = await fetch('/api/distribuir-clientes-nao-processados', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert(`✅ ${data.message}\n\nClientes processados: ${data.distributed_count}\nValor total: R$ ${data.total_value.toFixed(2).replace('.', ',')}`);
+      location.reload();
+    } else {
+      alert('❌ Erro: ' + (data.error || 'Falha ao sincronizar'));
+    }
+  } catch (e) {
+    alert('❌ Erro: ' + e.message);
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalText;

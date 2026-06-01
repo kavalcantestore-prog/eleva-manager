@@ -370,6 +370,63 @@ async def distribuir_receita(request: Request):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.post("/api/distribuir-clientes-nao-processados")
+async def distribuir_clientes_nao_processados(request: Request):
+    """Distribute revenue for all clients that haven't been processed yet"""
+    user = require_user(request)
+    conn = get_db()
+
+    # Find clients with contract_value > 0 that haven't been distributed yet
+    clients = conn.execute("""
+        SELECT c.id, c.name, c.contract_value, c.company
+        FROM clients c
+        WHERE c.contract_value > 0
+        AND c.id NOT IN (
+            SELECT DISTINCT related_id FROM revenue_distribution
+            WHERE related_entity = 'cliente'
+        )
+        ORDER BY c.created_at DESC
+    """).fetchall()
+
+    distributed_count = 0
+    total_value = 0
+
+    try:
+        for client in clients:
+            distribute_revenue(
+                conn, client['contract_value'], client['name'],
+                "cliente", client['id'], user["id"],
+                f"Distribuição em lote de clientes não processados"
+            )
+            distributed_count += 1
+            total_value += client['contract_value']
+
+        create_notification(
+            conn, user["id"],
+            "Clientes Sincronizados",
+            f"{distributed_count} cliente(s) sincronizado(s) com distribuição de receita (Total: R$ {total_value:.2f})",
+            "distribuicao"
+        )
+
+        log_action(
+            conn, user,
+            "sincronizou clientes",
+            "distribuicao",
+            f"{distributed_count} cliente(s) processado(s) - R$ {total_value:.2f}"
+        )
+
+        return JSONResponse({
+            "success": True,
+            "distributed_count": distributed_count,
+            "total_value": total_value,
+            "message": f"{distributed_count} cliente(s) sincronizado(s) com sucesso!"
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        conn.close()
+
+
 @app.get("/api/saldos-setores")
 def get_saldos_setores(request: Request):
     user = require_user(request)
