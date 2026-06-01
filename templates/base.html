@@ -13,9 +13,14 @@
       <span class="brand-icon">E</span>
       <span>ELEVA</span>
     </div>
-    <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema" title="Dark/Light">
+        <i class="fa fa-sun" id="theme-icon"></i>
+      </button>
+      <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </header>
 
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
