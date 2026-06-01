@@ -414,13 +414,10 @@ async function gerarContrato(event) {
       return;
     }
 
-    // Get HTML response as text
-    const html = await response.text();
-
-    // Open HTML in new window/tab
-    const newWindow = window.open();
-    newWindow.document.write(html);
-    newWindow.document.close();
+    // Get HTML response as blob and open in new tab
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
 
     // The <script>window.print();</script> in the HTML will auto-trigger print dialog
   } catch (e) {
