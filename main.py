@@ -1636,7 +1636,9 @@ async def prospeccao_gerar_mensagem(request: Request):
         from openai import AsyncOpenAI
         client = AsyncOpenAI(api_key=api_key)
 
-        user_name = user.get("name", "Equipe").split()[0]  # Pega primeiro nome
+        # Converter sqlite3.Row para dict se necessário
+        user_dict = dict(user) if hasattr(user, 'keys') else user
+        user_name = user_dict.get("name", "Equipe").split()[0]  # Pega primeiro nome
 
         system_prompt = """Você é especialista em prospecção e copywriting para agências de marketing digital.
 Gere 3 mensagens curtas (2-3 linhas) para prospectar empresas por WhatsApp.
