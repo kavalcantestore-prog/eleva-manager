@@ -151,6 +151,10 @@
         <span class="user-role">{{ user.role }}</span>
       </div>
       <div style="display: flex; gap: 0.5rem;">
+        <button class="notifications-btn" id="notifications-btn" onclick="toggleNotifications()" aria-label="Notificações" title="Notificações">
+          <i class="fa fa-bell"></i>
+          <span id="notif-badge" class="badge" style="display: none;">0</span>
+        </button>
         <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema" title="Dark/Light">
           <i class="fa fa-sun" id="theme-icon"></i>
         </button>
@@ -166,6 +170,22 @@
   </main>
 
   <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+
+  <!-- Notifications Dropdown -->
+  <div id="notifications-panel" class="notifications-panel" onclick="event.stopPropagation()">
+    <div class="notif-header">
+      <h3><i class="fa fa-bell"></i> Notificações</h3>
+      <button onclick="closeNotifications()" style="background:none; border:none; cursor:pointer; color:var(--text);">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div id="notif-list" class="notif-list">
+      <div style="padding: 1rem; text-align: center; color: var(--muted);">Carregando...</div>
+    </div>
+    <div class="notif-footer">
+      <button onclick="clearAllNotifications()" class="btn btn-sm btn-ghost">Limpar tudo</button>
+    </div>
+  </div>
 
   <script src="/static/js/main.js"></script>
   <script src="/static/js/multi-select.js"></script>

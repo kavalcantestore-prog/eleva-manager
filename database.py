@@ -309,6 +309,22 @@ def init_db():
             can_view_prolabore BOOLEAN DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            type TEXT DEFAULT 'info',
+            related_entity TEXT,
+            related_id INTEGER,
+            is_read BOOLEAN DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now','localtime')),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+        CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
     """)
 
     row = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -363,3 +379,12 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+
+
+def create_notification(conn, user_id: int, title: str, message: str, notification_type: str = "info", related_entity: str = None, related_id: int = None):
+    """Create a notification for a user."""
+    conn.execute(
+        "INSERT INTO notifications (user_id, title, message, type, related_entity, related_id) VALUES (?,?,?,?,?,?)",
+        (user_id, title, message, notification_type, related_entity, related_id)
+    )
+    conn.commit()

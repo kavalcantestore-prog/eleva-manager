@@ -2,14 +2,16 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from database import init_db, get_db, log_action
+from database import init_db, get_db, log_action, create_notification
 from auth import (
     create_session, get_current_user, require_user,
     authenticate_user, hash_password, SESSION_COOKIE
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar as cal_mod
 import os
+import threading
+import time
 
 app = FastAPI(title="ELEVA Manager")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -432,6 +434,50 @@ def pipeline_deletar(request: Request, pid: int):
     if row: log_action(conn, user, "removeu", "pipeline", row['contact_name'])
     conn.commit(); conn.close()
     return RedirectResponse("/pipeline", status_code=302)
+
+
+# ── Notificações ──────────────────────────────────────────────────────────────
+
+@app.get("/api/notificacoes")
+def get_notificacoes(request: Request, limit: int = 10):
+    user = require_user(request)
+    conn = get_db()
+    notifs = conn.execute(
+        "SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT ?",
+        (user["id"], limit)
+    ).fetchall()
+    conn.close()
+    return JSONResponse([dict(n) for n in notifs])
+
+
+@app.get("/api/notificacoes/nao-lidas")
+def get_unread_count(request: Request):
+    user = require_user(request)
+    conn = get_db()
+    count = conn.execute(
+        "SELECT COUNT(*) as cnt FROM notifications WHERE user_id=? AND is_read=0",
+        (user["id"],)
+    ).fetchone()["cnt"]
+    conn.close()
+    return JSONResponse({"count": count})
+
+
+@app.post("/api/notificacoes/{nid}/ler")
+def mark_notification_read(request: Request, nid: int):
+    user = require_user(request)
+    conn = get_db()
+    conn.execute("UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?", (nid, user["id"]))
+    conn.commit(); conn.close()
+    return JSONResponse({"success": True})
+
+
+@app.post("/api/notificacoes/limpar-tudo")
+def clear_all_notifications(request: Request):
+    user = require_user(request)
+    conn = get_db()
+    conn.execute("DELETE FROM notifications WHERE user_id=?", (user["id"],))
+    conn.commit(); conn.close()
+    return JSONResponse({"success": True})
 
 
 # ── Projetos ──────────────────────────────────────────────────────────────────
@@ -1813,6 +1859,116 @@ def prospeccao_campanha_nova(request: Request):
         "success": True,
         "message": "Campanha criada com sucesso"
     })
+
+
+# ── Background Tasks ─────────────────────────────────────────────────────────────
+
+def check_and_create_notifications():
+    """Background task: Check for overdue tasks, pending proposals, etc."""
+    while True:
+        try:
+            conn = get_db()
+
+            # 1️⃣ Tarefas vencidas
+            overdue_tasks = conn.execute("""
+                SELECT pt.id, pt.title, pt.responsible, p.client_name
+                FROM project_tasks pt
+                JOIN projects p ON pt.project_id = p.id
+                WHERE pt.status != 'concluido'
+                AND pt.deadline IS NOT NULL
+                AND date(pt.deadline) < date('now', 'localtime')
+            """).fetchall()
+
+            for task in overdue_tasks:
+                # Check if notification already exists
+                exists = conn.execute(
+                    "SELECT id FROM notifications WHERE related_entity='tarefa' AND related_id=?",
+                    (task['id'],)
+                ).fetchone()
+
+                if not exists:
+                    # Find user (by responsible field)
+                    user = conn.execute(
+                        "SELECT id FROM users WHERE name LIKE ?",
+                        (f"%{task['responsible']}%",)
+                    ).fetchone()
+
+                    if user:
+                        create_notification(
+                            conn, user['id'],
+                            "⚠️ Tarefa Vencida",
+                            f"{task['title']} para {task['client_name']} está vencida!",
+                            "tarefa", "tarefa", task['id']
+                        )
+
+            # 2️⃣ Propostas pendentes há mais de 7 dias
+            pending_proposals = conn.execute("""
+                SELECT id, title, client_name, created_by, sent_date
+                FROM proposals
+                WHERE status = 'enviada'
+                AND sent_date IS NOT NULL
+                AND datetime(sent_date) < datetime('now', 'localtime', '-7 days')
+            """).fetchall()
+
+            for prop in pending_proposals:
+                exists = conn.execute(
+                    "SELECT id FROM notifications WHERE related_entity='proposta' AND related_id=?",
+                    (prop['id'],)
+                ).fetchone()
+
+                if not exists and prop['created_by']:
+                    create_notification(
+                        conn, prop['created_by'],
+                        "📋 Proposta Aguardando Resposta",
+                        f"{prop['title']} para {prop['client_name']} aguarda resposta há 7+ dias",
+                        "proposta", "proposta", prop['id']
+                    )
+
+            # 3️⃣ Leads em Proposta há mais de 5 dias
+            long_waiting_leads = conn.execute("""
+                SELECT id, contact_name, stage, created_at
+                FROM pipeline
+                WHERE stage = 'proposta'
+                AND datetime(created_at) < datetime('now', 'localtime', '-5 days')
+            """).fetchall()
+
+            for lead in long_waiting_leads:
+                exists = conn.execute(
+                    "SELECT id FROM notifications WHERE related_entity='lead' AND related_id=?",
+                    (lead['id'],)
+                ).fetchone()
+
+                if not exists:
+                    # Notify all users with pipeline permission
+                    users = conn.execute(
+                        "SELECT u.id FROM users u JOIN user_permissions up ON u.id = up.user_id WHERE up.can_view_pipeline = 1"
+                    ).fetchall()
+
+                    for user in users:
+                        create_notification(
+                            conn, user['id'],
+                            "⏳ Lead Aguardando Decisão",
+                            f"{lead['contact_name']} está em Proposta há 5+ dias",
+                            "lead", "lead", lead['id']
+                        )
+
+            conn.close()
+        except Exception as e:
+            print(f"Error in notification task: {e}")
+
+        # Sleep for 1 hour before checking again
+        time.sleep(3600)
+
+
+# Start background task on app startup
+@app.on_event("startup")
+def start_background_tasks():
+    """Start background notification checker."""
+    # Only start once
+    if not hasattr(app, 'notif_thread_started'):
+        app.notif_thread_started = True
+        thread = threading.Thread(target=check_and_create_notifications, daemon=True)
+        thread.start()
 
 
 if __name__ == "__main__":
