@@ -438,7 +438,7 @@ def distribute_revenue(conn, contract_value: float, client_name: str = "", relat
     conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated + ? WHERE sector = 'investment_expansion'", (investment_expansion,))
     conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated + ? WHERE sector = 'accumulated_profit'", (accumulated_profit,))
 
-    conn.commit()
+    # Note: caller is responsible for commit()
 
     return {
         "ceo_prolabore": ceo_prolabore,
