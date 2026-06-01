@@ -565,27 +565,27 @@ def generate_contract_pdf(client, services, due_date, custom_terms, user):
 
     pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Courier", size=11)
 
     # Set margins
     pdf.set_left_margin(15)
     pdf.set_right_margin(15)
 
     # Header
-    pdf.set_font("Arial", "B", size=16)
+    pdf.set_font("Courier", "B", size=14)
     pdf.set_text_color(201, 160, 54)  # Gold color
-    pdf.cell(0, 10, "CONTRATO DE PRESTAÇÃO DE SERVIÇOS", ln=True, align="C")
+    pdf.cell(0, 10, "CONTRATO DE PRESTACAO DE SERVICOS", ln=True, align="C")
     pdf.set_text_color(100, 100, 100)
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Courier", size=9)
     pdf.cell(0, 5, f"Gerado em {datetime.now().strftime('%d de %B de %Y')}", ln=True, align="C")
     pdf.ln(5)
 
     # Section 1: Parties
-    pdf.set_font("Arial", "B", size=11)
+    pdf.set_font("Courier", "B", size=10)
     pdf.set_text_color(201, 160, 54)
     pdf.cell(0, 8, "1. PARTES CONTRATANTES", ln=True)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Courier", size=9)
 
     pdf.cell(0, 6, f"CONTRATANTE: ELEVA (Empresa de Consultoria Digital)", ln=True)
     pdf.cell(0, 6, f"CONTRATADO: {client.get('name', 'N/A')}", ln=True)
@@ -602,50 +602,50 @@ def generate_contract_pdf(client, services, due_date, custom_terms, user):
     pdf.set_font("Arial", size=10)
 
     for service in services:
-        pdf.cell(5, 6, "•")
+        pdf.cell(5, 6, "-")
         pdf.cell(0, 6, service, ln=True)
     pdf.ln(3)
 
     # Section 3: Payment
-    pdf.set_font("Arial", "B", size=11)
+    pdf.set_font("Courier", "B", size=10)
     pdf.set_text_color(201, 160, 54)
     pdf.cell(0, 8, "3. VALOR E FORMA DE PAGAMENTO", ln=True)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Arial", size=10)
-    pdf.multi_cell(0, 6, "O valor e a forma de pagamento serão conforme acordado entre as partes, conforme proposta comercial enviada.")
+    pdf.set_font("Courier", size=9)
+    pdf.multi_cell(0, 6, "O valor e a forma de pagamento serao conforme acordado entre as partes, conforme proposta comercial enviada.")
     pdf.ln(3)
 
     # Section 4: Validity
-    pdf.set_font("Arial", "B", size=11)
+    pdf.set_font("Courier", "B", size=10)
     pdf.set_text_color(201, 160, 54)
-    pdf.cell(0, 8, "4. VIGÊNCIA DO CONTRATO", ln=True)
+    pdf.cell(0, 8, "4. VIGENCIA DO CONTRATO", ln=True)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Arial", size=10)
-    validity_text = f"Este contrato vigorará a partir da data da assinatura até {due_date or 'Data a definir'}"
+    pdf.set_font("Courier", size=9)
+    validity_text = f"Este contrato vigorara a partir da data da assinatura ate {due_date or 'Data a definir'}"
     pdf.multi_cell(0, 6, validity_text)
     pdf.ln(3)
 
     # Section 5: Additional Terms
     if custom_terms:
-        pdf.set_font("Arial", "B", size=11)
+        pdf.set_font("Courier", "B", size=10)
         pdf.set_text_color(201, 160, 54)
-        pdf.cell(0, 8, "5. CLÁUSULAS ADICIONAIS", ln=True)
+        pdf.cell(0, 8, "5. CLAUSULAS ADICIONAIS", ln=True)
         pdf.set_text_color(0, 0, 0)
-        pdf.set_font("Arial", size=10)
+        pdf.set_font("Courier", size=9)
         pdf.multi_cell(0, 6, custom_terms)
         pdf.ln(3)
 
     # Section 6: General Provisions
-    pdf.set_font("Arial", "B", size=11)
+    pdf.set_font("Courier", "B", size=10)
     pdf.set_text_color(201, 160, 54)
-    pdf.cell(0, 8, "6. DISPOSIÇÕES GERAIS", ln=True)
+    pdf.cell(0, 8, "6. DISPOSICOES GERAIS", ln=True)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Arial", size=10)
-    pdf.multi_cell(0, 6, "As partes concordam em cumprir fielmente todas as obrigações estabelecidas neste contrato e em conformidade com as leis brasileiras aplicáveis.")
+    pdf.set_font("Courier", size=9)
+    pdf.multi_cell(0, 6, "As partes concordam em cumprir fielmente todas as obrigacoes estabelecidas neste contrato e em conformidade com as leis brasileiras aplicaveis.")
     pdf.ln(5)
 
     # Signatures
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Courier", size=9)
     pdf.cell(80, 20, "")
     pdf.cell(0, 20, "")
     pdf.ln(5)
