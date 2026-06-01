@@ -27,6 +27,11 @@ MONTHS_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
 @app.on_event("startup")
 def startup():
     init_db()
+    # Start background notification checker
+    if not hasattr(app, 'notif_thread_started'):
+        app.notif_thread_started = True
+        thread = threading.Thread(target=check_and_create_notifications, daemon=True)
+        thread.start()
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -1958,17 +1963,6 @@ def check_and_create_notifications():
 
         # Sleep for 1 hour before checking again
         time.sleep(3600)
-
-
-# Start background task on app startup
-@app.on_event("startup")
-def start_background_tasks():
-    """Start background notification checker."""
-    # Only start once
-    if not hasattr(app, 'notif_thread_started'):
-        app.notif_thread_started = True
-        thread = threading.Thread(target=check_and_create_notifications, daemon=True)
-        thread.start()
 
 
 if __name__ == "__main__":
