@@ -45,6 +45,11 @@
         <td>{{ c.entry_date or '—' }}</td>
         <td><span class="badge badge-{{ c.status }}">{{ c.status }}</span></td>
         <td class="actions">
+          {% if c.contract_value > 0 %}
+          <button class="btn btn-sm btn-success" onclick="distribuirReceita({{ c.id }}, '{{ c.name }}', {{ c.contract_value }})" title="Distribuir Receita">
+            <i class="fa fa-chart-pie"></i>
+          </button>
+          {% endif %}
           <a href="/relatorio/{{ c.id }}" class="btn btn-sm btn-ghost" title="Ver Relatório"><i class="fa fa-file-lines"></i></a>
           <button class="btn btn-sm btn-ghost" onclick="openEdit({{ c | tojson }})">
             <i class="fa fa-pen"></i>
@@ -196,6 +201,42 @@ function openEdit(c) {
   initServicesSelector('edit-services-selector', 'edit-services-input', services);
 
   openModal('modal-edit-cliente');
+}
+
+async function distribuirReceita(clientId, clientName, contractValue) {
+  const ceoProlabore = (contractValue * 0.40).toFixed(2).replace(".", ",");
+  const cashbox = (contractValue * 0.30).toFixed(2).replace(".", ",");
+  const investment = (contractValue * 0.20).toFixed(2).replace(".", ",");
+  const profit = (contractValue * 0.10).toFixed(2).replace(".", ",");
+
+  const msg = `Deseja distribuir a receita do cliente?\n\n` +
+    `Cliente: ${clientName}\n` +
+    `Valor: R$ ${contractValue.toFixed(2).replace(".", ",")}\n\n` +
+    `Distribuição:\n` +
+    `💰 Pró-labore (40%): R$ ${ceoProlabore}\n` +
+    `🏦 Caixa (30%): R$ ${cashbox}\n` +
+    `🚀 Investimento (20%): R$ ${investment}\n` +
+    `📈 Lucro (10%): R$ ${profit}`;
+
+  if (!confirm(msg)) return;
+
+  try {
+    const response = await fetch(`/api/clientes/${clientId}/distribuir-receita`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert('✅ Receita distribuída com sucesso!');
+      location.reload();
+    } else {
+      alert('❌ Erro: ' + (data.error || 'Falha ao distribuir'));
+    }
+  } catch (e) {
+    alert('❌ Erro: ' + e.message);
+  }
 }
 </script>
 {% endblock %}
