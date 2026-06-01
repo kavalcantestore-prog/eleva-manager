@@ -485,6 +485,178 @@ def clear_all_notifications(request: Request):
     return JSONResponse({"success": True})
 
 
+# ── Contratos ─────────────────────────────────────────────────────────────────
+
+@app.get("/contratos/gerar", response_class=HTMLResponse)
+def gerar_contrato_page(request: Request):
+    user = require_user(request)
+    conn = get_db()
+
+    # Get list of clients and available services
+    clients = conn.execute("SELECT id, name, email, phone, company FROM clients ORDER BY name").fetchall()
+    conn.close()
+
+    services_list = [
+        "Tráfego Pago",
+        "Social Media",
+        "E-commerce",
+        "Consultoria",
+        "SEO",
+        "Landing Page",
+        "Gestão de Site",
+        "Automação",
+        "IA",
+        "Branding",
+        "Email Marketing",
+        "CRM"
+    ]
+
+    return templates.TemplateResponse("gerar_contrato.html", {
+        "request": request,
+        "user": dict(user),
+        "clients": [dict(c) for c in clients],
+        "services": services_list
+    })
+
+
+@app.post("/contratos/gerar-pdf")
+async def gerar_contrato_pdf(request: Request):
+    from weasyprint import HTML, CSS
+    from io import BytesIO
+    import base64
+
+    user = require_user(request)
+    data = await request.json()
+
+    client_id = data.get("client_id")
+    services = data.get("services", [])
+    due_date = data.get("due_date", "")
+    custom_terms = data.get("custom_terms", "")
+
+    if not client_id or not services:
+        return JSONResponse({"error": "Cliente e serviços obrigatórios"}, status_code=400)
+
+    conn = get_db()
+    client = conn.execute("SELECT * FROM clients WHERE id=?", (client_id,)).fetchone()
+    conn.close()
+
+    if not client:
+        return JSONResponse({"error": "Cliente não encontrado"}, status_code=404)
+
+    # Generate contract HTML
+    html_content = generate_contract_html(dict(client), services, due_date, custom_terms, user)
+
+    # Convert to PDF
+    try:
+        pdf_bytes = HTML(string=html_content).write_pdf()
+
+        # Create response with PDF
+        return JSONResponse({
+            "success": True,
+            "pdf_base64": base64.b64encode(pdf_bytes).decode(),
+            "filename": f"Contrato_{client['name'].replace(' ', '_')}.pdf"
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+def generate_contract_html(client, services, due_date, custom_terms, user):
+    """Generate contract HTML from template with client data."""
+    from datetime import datetime
+
+    services_text = "<br>".join([f"• {s}" for s in services])
+
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8"/>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }}
+            .header {{ text-align: center; margin-bottom: 30px; border-bottom: 3px solid #C9A036; padding-bottom: 15px; }}
+            .header h1 {{ margin: 0; color: #C9A036; font-size: 28px; }}
+            .header p {{ margin: 5px 0; color: #666; }}
+            .content {{ margin: 20px 0; }}
+            .section {{ margin: 20px 0; }}
+            .section-title {{ font-weight: bold; font-size: 14px; color: #C9A036; text-transform: uppercase; margin: 15px 0 10px 0; }}
+            .client-info {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+            .services-list {{ background: #f9f9f9; padding: 15px; border-left: 4px solid #C9A036; margin: 15px 0; }}
+            .signature {{ margin-top: 40px; display: flex; justify-content: space-between; }}
+            .signature-line {{ border-top: 1px solid #333; width: 40%; text-align: center; margin-top: 40px; }}
+            .footer {{ margin-top: 40px; text-align: center; color: #999; font-size: 11px; border-top: 1px solid #ddd; padding-top: 15px; }}
+            .date-field {{ display: inline-block; border-bottom: 1px solid #333; width: 200px; margin: 0 5px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
+            <p>Gerado em {datetime.now().strftime('%d de %B de %Y')}</p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <div class="section-title">1. PARTES CONTRATANTES</div>
+                <div class="client-info">
+                    <p><strong>CONTRATANTE:</strong> ELEVA (Empresa de Consultoria Digital)</p>
+                    <p><strong>CONTRATADO:</strong> {client.get('name', 'N/A')}</p>
+                    <p><strong>Email:</strong> {client.get('email', 'N/A')}</p>
+                    <p><strong>Telefone:</strong> {client.get('phone', 'N/A')}</p>
+                    <p><strong>Empresa:</strong> {client.get('company', 'N/A')}</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">2. SERVIÇOS A SEREM PRESTADOS</div>
+                <div class="services-list">
+                    {services_text}
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">3. VALOR E FORMA DE PAGAMENTO</div>
+                <p>O valor e a forma de pagamento serão conforme acordado entre as partes, conforme proposta comercial enviada.</p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">4. VIGÊNCIA DO CONTRATO</div>
+                <p>Este contrato vigorará a partir da data da assinatura até <span class="date-field">{due_date or 'Data a definir'}</span></p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">5. CLÁUSULAS ADICIONAIS</div>
+                <p>{custom_terms or 'Nenhuma cláusula adicional foi especificada.'}</p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">6. DISPOSIÇÕES GERAIS</div>
+                <p>As partes concordam em cumprir fielmente todas as obrigações estabelecidas neste contrato e em conformidade com as leis brasileiras aplicáveis.</p>
+            </div>
+
+            <div class="signature">
+                <div>
+                    <p>___________________________</p>
+                    <p>ELEVA</p>
+                    <p>{user.get('name', 'Assinado por')}</p>
+                </div>
+                <div>
+                    <p>___________________________</p>
+                    <p>{client.get('name', 'Cliente')}</p>
+                    <p>{client.get('email', '')}</p>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>Este contrato foi gerado automaticamente pelo sistema ELEVA Manager.</p>
+                <p>Data de geração: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return html
+
+
 # ── Projetos ──────────────────────────────────────────────────────────────────
 
 @app.get("/projetos", response_class=HTMLResponse)

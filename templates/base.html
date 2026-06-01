@@ -83,6 +83,9 @@
         <i class="fa fa-file-contract"></i><span>Propostas</span>
       </a></li>
       {% endif %}
+      <li><a href="/contratos/gerar" class="{% if '/contratos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-file-pdf"></i><span>Gerar Contratos</span>
+      </a></li>
       {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_agendador %}
       <li><a href="/agendador" class="{% if '/agendador' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-calendar-check"></i><span>Agendador</span>
