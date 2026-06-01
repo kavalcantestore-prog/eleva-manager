@@ -791,6 +791,7 @@ def gerar_contrato_page(request: Request):
 async def gerar_contrato_pdf(request: Request):
     from fpdf import FPDF
     import base64
+    import json
 
     user = require_user(request)
     data = await request.json()
@@ -799,6 +800,13 @@ async def gerar_contrato_pdf(request: Request):
     services = data.get("services", [])
     due_date = data.get("due_date", "")
     custom_terms = data.get("custom_terms", "")
+
+    # Ensure services is a list
+    if isinstance(services, str):
+        try:
+            services = json.loads(services)
+        except:
+            services = [services] if services else []
 
     if not client_id or not services:
         return JSONResponse({"error": "Cliente e serviços obrigatórios"}, status_code=400)
