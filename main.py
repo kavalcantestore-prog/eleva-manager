@@ -427,6 +427,36 @@ async def distribuir_clientes_nao_processados(request: Request):
         conn.close()
 
 
+@app.post("/api/pipeline/{pid}/stage")
+async def api_pipeline_stage(request: Request, pid: int):
+    """Update pipeline stage via drag and drop"""
+    user = require_user(request)
+    data = await request.json()
+    new_stage = data.get("stage", "")
+
+    if not new_stage:
+        return JSONResponse({"error": "Estágio não fornecido"}, status_code=400)
+
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT contact_name FROM pipeline WHERE id=?", (pid,)).fetchone()
+        if not row:
+            return JSONResponse({"error": "Lead não encontrado"}, status_code=404)
+
+        conn.execute("UPDATE pipeline SET stage=? WHERE id=?", (new_stage, pid))
+        log_action(conn, user, "moveu", "pipeline", f"{row['contact_name']} → {STAGES_LABEL.get(new_stage, new_stage)}")
+        conn.commit()
+
+        return JSONResponse({
+            "success": True,
+            "message": f"{row['contact_name']} movido para {STAGES_LABEL.get(new_stage, new_stage)}"
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        conn.close()
+
+
 @app.get("/api/saldos-setores")
 def get_saldos_setores(request: Request):
     user = require_user(request)

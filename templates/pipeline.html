@@ -17,9 +17,9 @@
     {% if totals[stage] > 0 %}
     <div class="pipeline-col-total">R$ {{ "%.0f"|format(totals[stage]) }}</div>
     {% endif %}
-    <div class="pipeline-cards">
+    <div class="pipeline-cards" ondrop="handleDrop(event, '{{ stage }}')" ondragover="handleDragOver(event)">
       {% for lead in by_stage[stage] %}
-      <div class="pipeline-card">
+      <div class="pipeline-card" draggable="true" ondragstart="handleDragStart(event, {{ lead.id }}, '{{ lead.contact_name }}')" ondragend="handleDragEnd(event)">
         <div class="pipeline-card-name">{{ lead.contact_name }}</div>
         {% if lead.company %}<div class="pipeline-card-company">{{ lead.company }}</div>{% endif %}
         {% if lead.service_type %}<div class="pipeline-card-tag">{{ lead.service_type }}</div>{% endif %}
@@ -270,6 +270,50 @@ function salvarEdicao(event) {
   })
   .then(r => r.ok ? location.reload() : alert('Erro ao salvar'))
   .catch(e => alert('Erro: ' + e.message));
+}
+
+// Drag and drop functionality
+let draggedCard = null;
+
+function handleDragStart(event, leadId, leadName) {
+  draggedCard = { id: leadId, name: leadName };
+  event.dataTransfer.effectAllowed = 'move';
+  event.target.style.opacity = '0.5';
+}
+
+function handleDragEnd(event) {
+  event.target.style.opacity = '1';
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  event.currentTarget.style.backgroundColor = 'rgba(201, 160, 54, 0.1)';
+}
+
+async function handleDrop(event, newStage) {
+  event.preventDefault();
+  event.currentTarget.style.backgroundColor = '';
+
+  if (!draggedCard) return;
+
+  try {
+    const response = await fetch(`/api/pipeline/${draggedCard.id}/stage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage: newStage })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erro ao mover: ' + (data.error || 'Falha desconhecida'));
+    }
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
 }
 </script>
 {% endblock %}
