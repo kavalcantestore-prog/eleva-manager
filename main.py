@@ -812,16 +812,18 @@ async def gerar_contrato_pdf(request: Request):
         return JSONResponse({"error": "Cliente e serviços obrigatórios"}, status_code=400)
 
     conn = get_db()
-    client = conn.execute("SELECT * FROM clients WHERE id=?", (client_id,)).fetchone()
+    row = conn.execute("SELECT * FROM clients WHERE id=?", (client_id,)).fetchone()
     conn.close()
 
-    if not client:
+    if not row:
         return JSONResponse({"error": "Cliente não encontrado"}, status_code=404)
+
+    # Convert sqlite3.Row to dict
+    client_data = dict(row) if hasattr(row, 'keys') else dict(zip(row.keys(), row))
 
     # Generate PDF with FPDF
     try:
-        client_dict = {k: client[k] for k in client.keys()}
-        pdf = generate_contract_pdf(client_dict, services, due_date, custom_terms, user)
+        pdf = generate_contract_pdf(client_data, services, due_date, custom_terms, user)
         pdf_bytes = pdf.output()
 
         # Create response with PDF
@@ -839,10 +841,6 @@ def generate_contract_pdf(client, services, due_date, custom_terms, user):
     """Generate contract PDF using FPDF2 with client data."""
     from fpdf import FPDF
     from datetime import datetime
-
-    # Ensure client is a dict
-    if not isinstance(client, dict):
-        client = {k: client[k] for k in client.keys()}
 
     pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.add_page()
