@@ -1682,9 +1682,12 @@ Assinatura: {user_name} - Grupo ELEVA 🚀"""
         })
 
     except Exception as e:
+        import traceback
+        erro_completo = traceback.format_exc()
+        print(f"[ERRO IA] {erro_completo}")  # Log no console
         return JSONResponse({
             "success": False,
-            "error": f"Erro ao gerar: {str(e)}"
+            "error": f"Erro ao gerar mensagens: {str(e)}"
         }, status_code=500)
 
 
