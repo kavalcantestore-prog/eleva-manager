@@ -840,6 +840,10 @@ def generate_contract_pdf(client, services, due_date, custom_terms, user):
     from fpdf import FPDF
     from datetime import datetime
 
+    # Ensure client is a dict
+    if not isinstance(client, dict):
+        client = {k: client[k] for k in client.keys()}
+
     pdf = FPDF(orientation='P', unit='mm', format='A4')
     pdf.add_page()
     pdf.set_font("Courier", size=11)
