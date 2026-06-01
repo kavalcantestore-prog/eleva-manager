@@ -863,11 +863,11 @@ def generate_contract_pdf(client, services, due_date, custom_terms, user):
     pdf.ln(3)
 
     # Section 2: Services
-    pdf.set_font("Arial", "B", size=11)
+    pdf.set_font("Courier", "B", size=11)
     pdf.set_text_color(201, 160, 54)
     pdf.cell(0, 8, "2. SERVIÇOS A SEREM PRESTADOS", ln=True)
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Courier", size=10)
 
     for service in services:
         pdf.cell(5, 6, "-")
@@ -928,7 +928,7 @@ def generate_contract_pdf(client, services, due_date, custom_terms, user):
 
     # Footer
     pdf.ln(5)
-    pdf.set_font("Arial", size=8)
+    pdf.set_font("Courier", size=8)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(0, 4, "Este contrato foi gerado automaticamente pelo sistema ELEVA Manager.", ln=True, align="C")
     pdf.cell(0, 4, f"Data de geração: {datetime.now().strftime('%d/%m/%Y às %H:%M')}", ln=True, align="C")
