@@ -521,8 +521,7 @@ def gerar_contrato_page(request: Request):
 
 @app.post("/contratos/gerar-pdf")
 async def gerar_contrato_pdf(request: Request):
-    from weasyprint import HTML, CSS
-    from io import BytesIO
+    from fpdf import FPDF
     import base64
 
     user = require_user(request)
@@ -543,12 +542,10 @@ async def gerar_contrato_pdf(request: Request):
     if not client:
         return JSONResponse({"error": "Cliente não encontrado"}, status_code=404)
 
-    # Generate contract HTML
-    html_content = generate_contract_html(dict(client), services, due_date, custom_terms, user)
-
-    # Convert to PDF
+    # Generate PDF with FPDF
     try:
-        pdf_bytes = HTML(string=html_content).write_pdf()
+        pdf = generate_contract_pdf(dict(client), services, due_date, custom_terms, user)
+        pdf_bytes = pdf.output()
 
         # Create response with PDF
         return JSONResponse({
@@ -557,104 +554,118 @@ async def gerar_contrato_pdf(request: Request):
             "filename": f"Contrato_{client['name'].replace(' ', '_')}.pdf"
         })
     except Exception as e:
+        print(f"Error generating PDF: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-def generate_contract_html(client, services, due_date, custom_terms, user):
-    """Generate contract HTML from template with client data."""
+def generate_contract_pdf(client, services, due_date, custom_terms, user):
+    """Generate contract PDF using FPDF2 with client data."""
+    from fpdf import FPDF
     from datetime import datetime
 
-    services_text = "<br>".join([f"• {s}" for s in services])
+    pdf = FPDF(orientation='P', unit='mm', format='A4')
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
 
-    html = f"""
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8"/>
-        <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }}
-            .header {{ text-align: center; margin-bottom: 30px; border-bottom: 3px solid #C9A036; padding-bottom: 15px; }}
-            .header h1 {{ margin: 0; color: #C9A036; font-size: 28px; }}
-            .header p {{ margin: 5px 0; color: #666; }}
-            .content {{ margin: 20px 0; }}
-            .section {{ margin: 20px 0; }}
-            .section-title {{ font-weight: bold; font-size: 14px; color: #C9A036; text-transform: uppercase; margin: 15px 0 10px 0; }}
-            .client-info {{ background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0; }}
-            .services-list {{ background: #f9f9f9; padding: 15px; border-left: 4px solid #C9A036; margin: 15px 0; }}
-            .signature {{ margin-top: 40px; display: flex; justify-content: space-between; }}
-            .signature-line {{ border-top: 1px solid #333; width: 40%; text-align: center; margin-top: 40px; }}
-            .footer {{ margin-top: 40px; text-align: center; color: #999; font-size: 11px; border-top: 1px solid #ddd; padding-top: 15px; }}
-            .date-field {{ display: inline-block; border-bottom: 1px solid #333; width: 200px; margin: 0 5px; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
-            <p>Gerado em {datetime.now().strftime('%d de %B de %Y')}</p>
-        </div>
+    # Set margins
+    pdf.set_left_margin(15)
+    pdf.set_right_margin(15)
 
-        <div class="content">
-            <div class="section">
-                <div class="section-title">1. PARTES CONTRATANTES</div>
-                <div class="client-info">
-                    <p><strong>CONTRATANTE:</strong> ELEVA (Empresa de Consultoria Digital)</p>
-                    <p><strong>CONTRATADO:</strong> {client.get('name', 'N/A')}</p>
-                    <p><strong>Email:</strong> {client.get('email', 'N/A')}</p>
-                    <p><strong>Telefone:</strong> {client.get('phone', 'N/A')}</p>
-                    <p><strong>Empresa:</strong> {client.get('company', 'N/A')}</p>
-                </div>
-            </div>
+    # Header
+    pdf.set_font("Arial", "B", size=16)
+    pdf.set_text_color(201, 160, 54)  # Gold color
+    pdf.cell(0, 10, "CONTRATO DE PRESTAÇÃO DE SERVIÇOS", ln=True, align="C")
+    pdf.set_text_color(100, 100, 100)
+    pdf.set_font("Arial", size=10)
+    pdf.cell(0, 5, f"Gerado em {datetime.now().strftime('%d de %B de %Y')}", ln=True, align="C")
+    pdf.ln(5)
 
-            <div class="section">
-                <div class="section-title">2. SERVIÇOS A SEREM PRESTADOS</div>
-                <div class="services-list">
-                    {services_text}
-                </div>
-            </div>
+    # Section 1: Parties
+    pdf.set_font("Arial", "B", size=11)
+    pdf.set_text_color(201, 160, 54)
+    pdf.cell(0, 8, "1. PARTES CONTRATANTES", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", size=10)
 
-            <div class="section">
-                <div class="section-title">3. VALOR E FORMA DE PAGAMENTO</div>
-                <p>O valor e a forma de pagamento serão conforme acordado entre as partes, conforme proposta comercial enviada.</p>
-            </div>
+    pdf.cell(0, 6, f"CONTRATANTE: ELEVA (Empresa de Consultoria Digital)", ln=True)
+    pdf.cell(0, 6, f"CONTRATADO: {client.get('name', 'N/A')}", ln=True)
+    pdf.cell(0, 6, f"Email: {client.get('email', 'N/A')}", ln=True)
+    pdf.cell(0, 6, f"Telefone: {client.get('phone', 'N/A')}", ln=True)
+    pdf.cell(0, 6, f"Empresa: {client.get('company', 'N/A')}", ln=True)
+    pdf.ln(3)
 
-            <div class="section">
-                <div class="section-title">4. VIGÊNCIA DO CONTRATO</div>
-                <p>Este contrato vigorará a partir da data da assinatura até <span class="date-field">{due_date or 'Data a definir'}</span></p>
-            </div>
+    # Section 2: Services
+    pdf.set_font("Arial", "B", size=11)
+    pdf.set_text_color(201, 160, 54)
+    pdf.cell(0, 8, "2. SERVIÇOS A SEREM PRESTADOS", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", size=10)
 
-            <div class="section">
-                <div class="section-title">5. CLÁUSULAS ADICIONAIS</div>
-                <p>{custom_terms or 'Nenhuma cláusula adicional foi especificada.'}</p>
-            </div>
+    for service in services:
+        pdf.cell(5, 6, "•")
+        pdf.cell(0, 6, service, ln=True)
+    pdf.ln(3)
 
-            <div class="section">
-                <div class="section-title">6. DISPOSIÇÕES GERAIS</div>
-                <p>As partes concordam em cumprir fielmente todas as obrigações estabelecidas neste contrato e em conformidade com as leis brasileiras aplicáveis.</p>
-            </div>
+    # Section 3: Payment
+    pdf.set_font("Arial", "B", size=11)
+    pdf.set_text_color(201, 160, 54)
+    pdf.cell(0, 8, "3. VALOR E FORMA DE PAGAMENTO", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", size=10)
+    pdf.multi_cell(0, 6, "O valor e a forma de pagamento serão conforme acordado entre as partes, conforme proposta comercial enviada.")
+    pdf.ln(3)
 
-            <div class="signature">
-                <div>
-                    <p>___________________________</p>
-                    <p>ELEVA</p>
-                    <p>{user.get('name', 'Assinado por')}</p>
-                </div>
-                <div>
-                    <p>___________________________</p>
-                    <p>{client.get('name', 'Cliente')}</p>
-                    <p>{client.get('email', '')}</p>
-                </div>
-            </div>
+    # Section 4: Validity
+    pdf.set_font("Arial", "B", size=11)
+    pdf.set_text_color(201, 160, 54)
+    pdf.cell(0, 8, "4. VIGÊNCIA DO CONTRATO", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", size=10)
+    validity_text = f"Este contrato vigorará a partir da data da assinatura até {due_date or 'Data a definir'}"
+    pdf.multi_cell(0, 6, validity_text)
+    pdf.ln(3)
 
-            <div class="footer">
-                <p>Este contrato foi gerado automaticamente pelo sistema ELEVA Manager.</p>
-                <p>Data de geração: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
+    # Section 5: Additional Terms
+    if custom_terms:
+        pdf.set_font("Arial", "B", size=11)
+        pdf.set_text_color(201, 160, 54)
+        pdf.cell(0, 8, "5. CLÁUSULAS ADICIONAIS", ln=True)
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Arial", size=10)
+        pdf.multi_cell(0, 6, custom_terms)
+        pdf.ln(3)
 
-    return html
+    # Section 6: General Provisions
+    pdf.set_font("Arial", "B", size=11)
+    pdf.set_text_color(201, 160, 54)
+    pdf.cell(0, 8, "6. DISPOSIÇÕES GERAIS", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", size=10)
+    pdf.multi_cell(0, 6, "As partes concordam em cumprir fielmente todas as obrigações estabelecidas neste contrato e em conformidade com as leis brasileiras aplicáveis.")
+    pdf.ln(5)
+
+    # Signatures
+    pdf.set_font("Arial", size=10)
+    pdf.cell(80, 20, "")
+    pdf.cell(0, 20, "")
+    pdf.ln(5)
+
+    # Company signature
+    pdf.cell(40, 6, "ELEVA", ln=False)
+    pdf.cell(0, 6, client.get('name', 'Cliente'), ln=True)
+    pdf.cell(40, 3, "__________________________", ln=False)
+    pdf.cell(0, 3, "__________________________", ln=True)
+    pdf.cell(40, 6, user.get('name', 'Assinado por'), ln=False)
+    pdf.cell(0, 6, client.get('email', ''), ln=True)
+
+    # Footer
+    pdf.ln(5)
+    pdf.set_font("Arial", size=8)
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 4, "Este contrato foi gerado automaticamente pelo sistema ELEVA Manager.", ln=True, align="C")
+    pdf.cell(0, 4, f"Data de geração: {datetime.now().strftime('%d/%m/%Y às %H:%M')}", ln=True, align="C")
+
+    return pdf
 
 
 # ── Projetos ──────────────────────────────────────────────────────────────────
