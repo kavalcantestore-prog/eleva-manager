@@ -36,6 +36,9 @@
               {% endfor %}
             </select>
           </form>
+          <button class="btn btn-sm btn-primary" onclick="editarLead({{ lead.id }}, '{{ lead.contact_name }}', '{{ lead.company or '' }}', '{{ lead.phone or '' }}', '{{ lead.email or '' }}', '{{ lead.service_type or '' }}', {{ lead.value or 0 }}, '{{ lead.responsible or '' }}', '{{ lead.notes or '' }}')">
+            <i class="fa fa-edit"></i>
+          </button>
           <form method="post" action="/pipeline/{{ lead.id }}/deletar" onsubmit="return confirm('Remover?')">
             <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
           </form>
@@ -199,4 +202,74 @@
   background: rgba(201,160,54,.1);
 }
 </style>
+
+<!-- Modal: Editar Lead -->
+<div id="modal-editar-lead" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3><i class="fa fa-edit"></i> Editar Lead</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form onsubmit="salvarEdicao(event)">
+      <input type="hidden" id="edit-lead-id"/>
+
+      <div class="form-group"><label>Nome do Contato *</label><input type="text" id="edit-contact-name" required/></div>
+      <div class="form-row">
+        <div class="form-group"><label>Empresa</label><input type="text" id="edit-company"/></div>
+        <div class="form-group"><label>Telefone</label><input type="tel" id="edit-phone"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" id="edit-email"/></div>
+        <div class="form-group"><label>Responsável</label><input type="text" id="edit-responsible"/></div>
+      </div>
+      <div class="form-group"><label>Serviços</label><input type="text" id="edit-services" placeholder="Ex: Tráfego Pago, Social Media"/></div>
+      <div class="form-group"><label>Valor Estimado (R$)</label><input type="number" step="0.01" id="edit-value" value="0"/></div>
+      <div class="form-group"><label>Observações</label><textarea id="edit-notes" rows="2"></textarea></div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editarLead(id, name, company, phone, email, services, value, responsible, notes) {
+  document.getElementById('edit-lead-id').value = id;
+  document.getElementById('edit-contact-name').value = name;
+  document.getElementById('edit-company').value = company;
+  document.getElementById('edit-phone').value = phone;
+  document.getElementById('edit-email').value = email;
+  document.getElementById('edit-services').value = services;
+  document.getElementById('edit-value').value = value;
+  document.getElementById('edit-responsible').value = responsible;
+  document.getElementById('edit-notes').value = notes;
+  openModal('modal-editar-lead');
+}
+
+function salvarEdicao(event) {
+  event.preventDefault();
+  const id = document.getElementById('edit-lead-id').value;
+  const formData = new FormData();
+  formData.append('contact_name', document.getElementById('edit-contact-name').value);
+  formData.append('company', document.getElementById('edit-company').value);
+  formData.append('phone', document.getElementById('edit-phone').value);
+  formData.append('email', document.getElementById('edit-email').value);
+  formData.append('services', document.getElementById('edit-services').value);
+  formData.append('value', document.getElementById('edit-value').value);
+  formData.append('responsible', document.getElementById('edit-responsible').value);
+  formData.append('notes', document.getElementById('edit-notes').value);
+
+  fetch(`/pipeline/${id}/editar`, {
+    method: 'POST',
+    body: formData
+  })
+  .then(r => r.ok ? location.reload() : alert('Erro ao salvar'))
+  .catch(e => alert('Erro: ' + e.message));
+}
+</script>
 {% endblock %}

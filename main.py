@@ -346,8 +346,8 @@ def tarefa_deletar(request: Request, tid: int):
 
 # ── Pipeline CRM ──────────────────────────────────────────────────────────────
 
-STAGES = ["prospecto", "negociacao", "proposta", "fechado", "perdido"]
-STAGES_LABEL = {"prospecto": "Prospecto", "negociacao": "Negociação", "proposta": "Proposta Enviada", "fechado": "Fechado ✓", "perdido": "Perdido ✗"}
+STAGES = ["prospecto", "proposta", "negociacao", "fechado", "perdido"]
+STAGES_LABEL = {"prospecto": "Prospecto", "proposta": "Proposta Enviada", "negociacao": "Negociação", "fechado": "Fechado ✓", "perdido": "Perdido ✗"}
 
 @app.get("/pipeline", response_class=HTMLResponse)
 def pipeline_page(request: Request):
@@ -399,6 +399,28 @@ def pipeline_stage(request: Request, pid: int, stage: str = Form(...)):
     if row: log_action(conn, user, "moveu", "pipeline", f"{row['contact_name']} → {STAGES_LABEL.get(stage, stage)}")
     conn.commit(); conn.close()
     return RedirectResponse("/pipeline", status_code=302)
+
+
+@app.post("/pipeline/{pid}/editar")
+def pipeline_editar(request: Request, pid: int, contact_name: str = Form(...), company: str = Form(""), phone: str = Form(""), email: str = Form(""), services: str = Form(""), value: float = Form(0), responsible: str = Form(""), notes: str = Form("")):
+    user = require_user(request)
+    conn = get_db()
+    conn.execute(
+        "UPDATE pipeline SET contact_name=?, company=?, phone=?, email=?, service_type=?, value=?, responsible=?, notes=? WHERE id=?",
+        (contact_name, company, phone, email, services, value, responsible, notes, pid)
+    )
+    log_action(conn, user, "editou", "pipeline", contact_name)
+    conn.commit(); conn.close()
+    return RedirectResponse("/pipeline", status_code=302)
+
+
+@app.get("/pipeline/{pid}/info")
+def pipeline_info(request: Request, pid: int):
+    user = require_user(request)
+    conn = get_db()
+    row = conn.execute("SELECT * FROM pipeline WHERE id=?", (pid,)).fetchone()
+    conn.close()
+    return JSONResponse(dict(row) if row else {})
 
 
 @app.post("/pipeline/{pid}/deletar")
