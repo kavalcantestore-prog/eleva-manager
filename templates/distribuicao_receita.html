@@ -75,8 +75,15 @@
     <form onsubmit="distribuirReceita(event)">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
         <div class="form-group">
-          <label for="client-name">Nome do Cliente</label>
-          <input type="text" id="client-name" placeholder="Ex: Acme Corporation"/>
+          <label for="client-select">Selecione um Cliente</label>
+          <select id="client-select" onchange="atualizarValor()">
+            <option value="">-- Escolha um cliente --</option>
+            {% for client in clients %}
+            <option value="{{ client.id }}" data-value="{{ client.contract_value }}" data-name="{{ client.name }}">
+              {{ client.name }} {% if client.company %}({{ client.company }}){% endif %} - R$ {{ "%.2f"|format(client.contract_value)|replace(".",",") }}
+            </option>
+            {% endfor %}
+          </select>
         </div>
         <div class="form-group">
           <label for="contract-value">Valor do Contrato *</label>
@@ -140,6 +147,7 @@
             <th>Caixa</th>
             <th>Investimento</th>
             <th>Lucro</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -152,6 +160,11 @@
             <td>R$ {{ "%.2f"|format(item.company_cashbox) }}</td>
             <td>R$ {{ "%.2f"|format(item.investment_expansion) }}</td>
             <td>R$ {{ "%.2f"|format(item.accumulated_profit) }}</td>
+            <td>
+              <button type="button" class="btn btn-sm btn-danger" onclick="deletarDistribuicao({{ item.id }}, '{{ item.client_name }}', {{ item.contract_value }})">
+                <i class="fa fa-trash"></i>
+              </button>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -441,6 +454,23 @@ async function distribuirReceita(event) {
   }
 }
 
+function atualizarValor() {
+  const select = document.getElementById('client-select');
+  const valueInput = document.getElementById('contract-value');
+  const selectedOption = select.options[select.selectedIndex];
+
+  if (selectedOption.value) {
+    const value = parseFloat(selectedOption.dataset.value);
+    valueInput.value = value.toFixed(2);
+
+    // Trigger input event to update preview
+    const event = new Event('input', { bubbles: true });
+    valueInput.dispatchEvent(event);
+  } else {
+    valueInput.value = '0.00';
+  }
+}
+
 async function sincronizarClientes() {
   const msg = 'Deseja sincronizar todos os clientes não processados?\n\nIsso distribuirá a receita de todos os clientes cadastrados que ainda não foram processados.';
 
@@ -470,6 +500,30 @@ async function sincronizarClientes() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalText;
+  }
+}
+
+async function deletarDistribuicao(distributionId, clientName, value) {
+  const msg = `Deseja deletar a distribuição?\n\nCliente: ${clientName}\nValor: R$ ${value.toFixed(2).replace('.', ',')}\n\nOs saldos dos setores serão revertidos automaticamente.`;
+
+  if (!confirm(msg)) return;
+
+  try {
+    const response = await fetch(`/api/distribuicao-receita/${distributionId}/deletar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert('✅ ' + data.message);
+      location.reload();
+    } else {
+      alert('❌ Erro: ' + (data.error || 'Falha ao deletar'));
+    }
+  } catch (e) {
+    alert('❌ Erro: ' + e.message);
   }
 }
 </script>

@@ -330,6 +330,14 @@ def distribuicao_receita_page(request: Request):
         LIMIT 50
     """).fetchall()
 
+    # Get all clients for selection dropdown
+    clients = conn.execute("""
+        SELECT id, name, company, contract_value
+        FROM clients
+        WHERE contract_value > 0
+        ORDER BY name ASC
+    """).fetchall()
+
     conn.close()
 
     return templates.TemplateResponse("distribuicao_receita.html", {
@@ -337,6 +345,7 @@ def distribuicao_receita_page(request: Request):
         "user": dict(user),
         "balances": balance_dict,
         "history": [dict(h) for h in history],
+        "clients": [dict(c) for c in clients],
         "total_distributed": sum(balance_dict.values())
     })
 
@@ -450,6 +459,42 @@ async def api_pipeline_stage(request: Request, pid: int):
         return JSONResponse({
             "success": True,
             "message": f"{row['contact_name']} movido para {STAGES_LABEL.get(new_stage, new_stage)}"
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        conn.close()
+
+
+@app.post("/api/distribuicao-receita/{did}/deletar")
+async def deletar_distribuicao(request: Request, did: int):
+    """Delete a revenue distribution and revert sector balances"""
+    user = require_user(request)
+    conn = get_db()
+
+    try:
+        # Get distribution details
+        dist = conn.execute("SELECT * FROM revenue_distribution WHERE id=?", (did,)).fetchone()
+        if not dist:
+            return JSONResponse({"error": "Distribuição não encontrada"}, status_code=404)
+
+        # Revert sector balances
+        conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated - ? WHERE sector = 'ceo_prolabore'", (dist['ceo_prolabore'],))
+        conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated - ? WHERE sector = 'company_cashbox'", (dist['company_cashbox'],))
+        conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated - ? WHERE sector = 'investment_expansion'", (dist['investment_expansion'],))
+        conn.execute("UPDATE sector_balance SET total_accumulated = total_accumulated - ? WHERE sector = 'accumulated_profit'", (dist['accumulated_profit'],))
+
+        # Delete the distribution
+        conn.execute("DELETE FROM revenue_distribution WHERE id=?", (did,))
+
+        # Log action
+        log_action(conn, user, "deletou distribuição", "receita", f"{dist['client_name']} - R$ {dist['contract_value']:.2f}")
+
+        conn.commit()
+
+        return JSONResponse({
+            "success": True,
+            "message": f"Distribuição de R$ {dist['contract_value']:.2f} deletada e revertida"
         })
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
