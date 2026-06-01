@@ -13,14 +13,9 @@
       <span class="brand-icon">E</span>
       <span>ELEVA</span>
     </div>
-    <div style="display: flex; gap: 0.5rem; align-items: center;">
-      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema" title="Dark/Light">
-        <i class="fa fa-sun" id="theme-icon"></i>
-      </button>
-      <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
+    <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </header>
 
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -155,7 +150,12 @@
         <span class="user-name">{{ user.name }}</span>
         <span class="user-role">{{ user.role }}</span>
       </div>
-      <a href="/logout" class="logout-btn" title="Sair"><i class="fa fa-sign-out-alt"></i></a>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema" title="Dark/Light">
+          <i class="fa fa-sun" id="theme-icon"></i>
+        </button>
+        <a href="/logout" class="logout-btn" title="Sair"><i class="fa fa-sign-out-alt"></i></a>
+      </div>
     </div>
   </nav>
 
