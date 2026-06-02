@@ -16,6 +16,18 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
 
+    # Check if services column exists in clients table
+    cursor = c.execute("PRAGMA table_info(clients)")
+    columns = [row[1] for row in cursor.fetchall()]
+
+    # Add services column if it doesn't exist
+    if 'services' not in columns:
+        try:
+            c.execute("ALTER TABLE clients ADD COLUMN services TEXT DEFAULT '[]'")
+            conn.commit()
+        except:
+            pass
+
     c.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
