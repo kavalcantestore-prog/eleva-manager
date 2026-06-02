@@ -37,6 +37,11 @@
         <i class="fa fa-clock-rotate-left"></i><span>Atividades</span>
       </a></li>
       {% endif %}
+      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_proximos_passos %}
+      <li><a href="/proximos-passos" class="{% if '/proximos-passos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-list-check"></i><span>Próximos Passos</span>
+      </a></li>
+      {% endif %}
 
       <li class="nav-section">COMERCIAL</li>
       {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_prospeccao %}
@@ -109,11 +114,6 @@
       {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_anuncios %}
       <li><a href="/anuncios" class="{% if '/anuncios' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-bullhorn"></i><span>Anúncios</span>
-      </a></li>
-      {% endif %}
-      {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_proximos_passos %}
-      <li><a href="/proximos-passos" class="{% if '/proximos-passos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
-        <i class="fa fa-list-check"></i><span>Próximos Passos</span>
       </a></li>
       {% endif %}
 
