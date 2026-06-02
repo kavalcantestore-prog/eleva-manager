@@ -414,7 +414,7 @@ def create_notification(conn, user_id: int, title: str, message: str, notificati
         "INSERT INTO notifications (user_id, title, message, type, related_entity, related_id) VALUES (?,?,?,?,?,?)",
         (user_id, title, message, notification_type, related_entity, related_id)
     )
-    conn.commit()
+    # Note: caller is responsible for commit()
 
 
 def distribute_revenue(conn, contract_value: float, client_name: str = "", related_entity: str = None, related_id: int = None, user_id: int = None, notes: str = ""):
