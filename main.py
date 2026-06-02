@@ -143,21 +143,25 @@ def clientes_page(request: Request, q: str = ""):
 
 @app.post("/clientes/novo")
 def cliente_novo(request: Request, name: str = Form(...), email: str = Form(""), phone: str = Form(""), company: str = Form(""), segment: str = Form(""), services: str = Form("[]"), contract_value: float = Form(0), status: str = Form("ativo"), entry_date: str = Form(""), notes: str = Form("")):
-    user = require_user(request)
-    conn = get_db()
-    if not entry_date: entry_date = datetime.now().strftime("%Y-%m-%d")
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO clients (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,user["id"]))
-    client_id = cursor.lastrowid
+    try:
+        user = require_user(request)
+        conn = get_db()
+        if not entry_date: entry_date = datetime.now().strftime("%Y-%m-%d")
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO clients (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (name,email,phone,company,segment,services,contract_value,status,entry_date,notes,user["id"]))
+        client_id = cursor.lastrowid
 
-    # Auto-distribute revenue if contract_value > 0
-    if contract_value > 0:
-        distribute_revenue(conn, contract_value, name, "cliente", client_id, user["id"], f"Auto-distribuição ao criar cliente")
-        create_notification(conn, user["id"], "Receita Distribuída", f"Receita de R$ {contract_value:.2f} foi automaticamente distribuída para o cliente {name}", "distribuicao", "cliente", client_id)
+        # Auto-distribute revenue if contract_value > 0
+        if contract_value > 0:
+            distribute_revenue(conn, contract_value, name, "cliente", client_id, user["id"], f"Auto-distribuição ao criar cliente")
+            create_notification(conn, user["id"], "Receita Distribuída", f"Receita de R$ {contract_value:.2f} foi automaticamente distribuída para o cliente {name}", "distribuicao", "cliente", client_id)
 
-    log_action(conn, user, "criou", "cliente", f"Cliente: {name} (R$ {contract_value:.2f})")
-    conn.commit(); conn.close()
-    return RedirectResponse("/clientes", status_code=302)
+        log_action(conn, user, "criou", "cliente", f"Cliente: {name} (R$ {contract_value:.2f})")
+        conn.commit()
+        conn.close()
+        return RedirectResponse("/clientes", status_code=302)
+    except Exception as e:
+        return JSONResponse({"error": f"Erro ao criar cliente: {str(e)}"}, status_code=500)
 
 
 @app.post("/clientes/{cid}/editar")
