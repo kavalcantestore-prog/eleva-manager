@@ -14,39 +14,38 @@
   <div class="kanban-column">
     <div class="kanban-header">
       <h3><i class="fa fa-circle-o"></i> Aberto</h3>
-      <span class="count">{{ (tasks | selectattr('status', 'equalto', 'aberto') | list | length) }}</span>
+      <span class="count" id="count-aberto">0</span>
     </div>
     <div class="kanban-cards" ondrop="handleDrop(event, 'aberto')" ondragover="handleDragOver(event)">
-      {% for t in tasks %}
-        {% if t.status == 'aberto' %}
-        <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
-          <div class="card-header">
-            <strong>{{ t.title }}</strong>
-            <div class="card-actions">
-              <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }}, '{{ t.title|replace(\"'\", \"\\\\'\" ) }}', '{{ t.description|replace(\"'\", \"\\\\'\" ) if t.description else '' }}', '{{ t.responsible }}', '{{ t.deadline }}', '{{ t.priority }}')"><i class="fa fa-edit"></i></button>
-              <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
-                <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
-              </form>
-            </div>
-          </div>
-          {% if t.description %}
-          <p class="card-desc">{{ t.description }}</p>
-          {% endif %}
-          <div class="card-footer">
-            <div class="card-meta">
-              {% if t.responsible %}
-              <span><i class="fa fa-user"></i> {{ t.responsible }}</span>
-              {% endif %}
-              {% if t.deadline %}
-              <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
-              {% endif %}
-            </div>
-            <span class="priority-label">{{ t.priority|upper }}</span>
+      {% set aberto_tasks = tasks|selectattr('status', 'equalto', 'aberto')|list %}
+      {% for t in aberto_tasks %}
+      <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }})" ondragend="handleDragEnd(event)" data-task-id="{{ t.id }}">
+        <div class="card-header">
+          <strong>{{ t.title }}</strong>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }})"><i class="fa fa-edit"></i></button>
+            <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+              <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+            </form>
           </div>
         </div>
+        {% if t.description %}
+        <p class="card-desc">{{ t.description }}</p>
         {% endif %}
+        <div class="card-footer">
+          <div class="card-meta">
+            {% if t.responsible %}
+            <span><i class="fa fa-user"></i> {{ t.responsible }}</span>
+            {% endif %}
+            {% if t.deadline %}
+            <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
+            {% endif %}
+          </div>
+          <span class="priority-label">{{ t.priority|upper }}</span>
+        </div>
+      </div>
       {% endfor %}
-      {% if (tasks | selectattr('status', 'equalto', 'aberto') | list | length) == 0 %}
+      {% if aberto_tasks|length == 0 %}
       <div class="kanban-empty">Nenhuma tarefa</div>
       {% endif %}
     </div>
@@ -56,39 +55,38 @@
   <div class="kanban-column">
     <div class="kanban-header">
       <h3><i class="fa fa-spinner"></i> Em andamento</h3>
-      <span class="count">{{ (tasks | selectattr('status', 'equalto', 'em_andamento') | list | length) }}</span>
+      <span class="count" id="count-em_andamento">0</span>
     </div>
     <div class="kanban-cards" ondrop="handleDrop(event, 'em_andamento')" ondragover="handleDragOver(event)">
-      {% for t in tasks %}
-        {% if t.status == 'em_andamento' %}
-        <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
-          <div class="card-header">
-            <strong>{{ t.title }}</strong>
-            <div class="card-actions">
-              <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }}, '{{ t.title|replace(\"'\", \"\\\\'\" ) }}', '{{ t.description|replace(\"'\", \"\\\\'\" ) if t.description else '' }}', '{{ t.responsible }}', '{{ t.deadline }}', '{{ t.priority }}')"><i class="fa fa-edit"></i></button>
-              <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
-                <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
-              </form>
-            </div>
-          </div>
-          {% if t.description %}
-          <p class="card-desc">{{ t.description }}</p>
-          {% endif %}
-          <div class="card-footer">
-            <div class="card-meta">
-              {% if t.responsible %}
-              <span><i class="fa fa-user"></i> {{ t.responsible }}</span>
-              {% endif %}
-              {% if t.deadline %}
-              <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
-              {% endif %}
-            </div>
-            <span class="priority-label">{{ t.priority|upper }}</span>
+      {% set em_andamento_tasks = tasks|selectattr('status', 'equalto', 'em_andamento')|list %}
+      {% for t in em_andamento_tasks %}
+      <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }})" ondragend="handleDragEnd(event)" data-task-id="{{ t.id }}">
+        <div class="card-header">
+          <strong>{{ t.title }}</strong>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }})"><i class="fa fa-edit"></i></button>
+            <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+              <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+            </form>
           </div>
         </div>
+        {% if t.description %}
+        <p class="card-desc">{{ t.description }}</p>
         {% endif %}
+        <div class="card-footer">
+          <div class="card-meta">
+            {% if t.responsible %}
+            <span><i class="fa fa-user"></i> {{ t.responsible }}</span>
+            {% endif %}
+            {% if t.deadline %}
+            <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
+            {% endif %}
+          </div>
+          <span class="priority-label">{{ t.priority|upper }}</span>
+        </div>
+      </div>
       {% endfor %}
-      {% if (tasks | selectattr('status', 'equalto', 'em_andamento') | list | length) == 0 %}
+      {% if em_andamento_tasks|length == 0 %}
       <div class="kanban-empty">Nenhuma tarefa</div>
       {% endif %}
     </div>
@@ -98,39 +96,38 @@
   <div class="kanban-column">
     <div class="kanban-header">
       <h3><i class="fa fa-check-circle"></i> Concluído</h3>
-      <span class="count">{{ (tasks | selectattr('status', 'equalto', 'concluido') | list | length) }}</span>
+      <span class="count" id="count-concluido">0</span>
     </div>
     <div class="kanban-cards" ondrop="handleDrop(event, 'concluido')" ondragover="handleDragOver(event)">
-      {% for t in tasks %}
-        {% if t.status == 'concluido' %}
-        <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
-          <div class="card-header">
-            <strong>{{ t.title }}</strong>
-            <div class="card-actions">
-              <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }}, '{{ t.title|replace(\"'\", \"\\\\'\" ) }}', '{{ t.description|replace(\"'\", \"\\\\'\" ) if t.description else '' }}', '{{ t.responsible }}', '{{ t.deadline }}', '{{ t.priority }}')"><i class="fa fa-edit"></i></button>
-              <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
-                <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
-              </form>
-            </div>
-          </div>
-          {% if t.description %}
-          <p class="card-desc">{{ t.description }}</p>
-          {% endif %}
-          <div class="card-footer">
-            <div class="card-meta">
-              {% if t.responsible %}
-              <span><i class="fa fa-user"></i> {{ t.responsible }}</span>
-              {% endif %}
-              {% if t.deadline %}
-              <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
-              {% endif %}
-            </div>
-            <span class="priority-label">{{ t.priority|upper }}</span>
+      {% set concluido_tasks = tasks|selectattr('status', 'equalto', 'concluido')|list %}
+      {% for t in concluido_tasks %}
+      <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }})" ondragend="handleDragEnd(event)" data-task-id="{{ t.id }}">
+        <div class="card-header">
+          <strong>{{ t.title }}</strong>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }})"><i class="fa fa-edit"></i></button>
+            <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+              <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+            </form>
           </div>
         </div>
+        {% if t.description %}
+        <p class="card-desc">{{ t.description }}</p>
         {% endif %}
+        <div class="card-footer">
+          <div class="card-meta">
+            {% if t.responsible %}
+            <span><i class="fa fa-user"></i> {{ t.responsible }}</span>
+            {% endif %}
+            {% if t.deadline %}
+            <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
+            {% endif %}
+          </div>
+          <span class="priority-label">{{ t.priority|upper }}</span>
+        </div>
+      </div>
       {% endfor %}
-      {% if (tasks | selectattr('status', 'equalto', 'concluido') | list | length) == 0 %}
+      {% if concluido_tasks|length == 0 %}
       <div class="kanban-empty">Nenhuma tarefa</div>
       {% endif %}
     </div>
@@ -324,15 +321,6 @@
   font-size: 0.8rem;
 }
 
-.priority-label {
-  background: var(--gold);
-  color: var(--bg);
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
 .card-desc {
   margin: 0.5rem 0;
   font-size: 0.85rem;
@@ -356,6 +344,15 @@
   gap: 0.3rem;
 }
 
+.priority-label {
+  background: var(--gold);
+  color: var(--bg);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 .kanban-empty {
   text-align: center;
   padding: 2rem 1rem;
@@ -371,9 +368,47 @@
 
 <script>
 let draggedTask = null;
+let taskData = {};
 
-function handleDragStart(event, taskId, taskTitle) {
-  draggedTask = { id: taskId, title: taskTitle };
+// Build task data map from page
+document.addEventListener('DOMContentLoaded', function() {
+  const cards = document.querySelectorAll('.kanban-card');
+  cards.forEach(card => {
+    const taskId = parseInt(card.getAttribute('data-task-id'));
+    taskData[taskId] = {
+      title: card.querySelector('.card-header strong').textContent,
+      description: card.querySelector('.card-desc')?.textContent || '',
+      responsible: '',
+      deadline: '',
+      priority: ''
+    };
+
+    const meta = card.querySelector('.card-meta');
+    if (meta) {
+      const spans = meta.querySelectorAll('span');
+      spans.forEach(span => {
+        const text = span.textContent.trim();
+        if (text.startsWith('ALTA') || text.startsWith('MÉDIA') || text.startsWith('BAIXA')) {
+          taskData[taskId].priority = text.toLowerCase().replace('á', 'a');
+        }
+      });
+    }
+  });
+
+  updateCounts();
+});
+
+function updateCounts() {
+  document.getElementById('count-aberto').textContent = document.querySelectorAll('.kanban-card[data-status="aberto"]').length ||
+    Array.from(document.querySelectorAll('.kanban-cards')[0].querySelectorAll('.kanban-card')).length;
+  document.getElementById('count-em_andamento').textContent = document.querySelectorAll('.kanban-card[data-status="em_andamento"]').length ||
+    Array.from(document.querySelectorAll('.kanban-cards')[1].querySelectorAll('.kanban-card')).length;
+  document.getElementById('count-concluido').textContent = document.querySelectorAll('.kanban-card[data-status="concluido"]').length ||
+    Array.from(document.querySelectorAll('.kanban-cards')[2].querySelectorAll('.kanban-card')).length;
+}
+
+function handleDragStart(event, taskId) {
+  draggedTask = taskId;
   event.target.classList.add('dragging');
   event.dataTransfer.effectAllowed = 'move';
 }
@@ -395,7 +430,7 @@ async function handleDrop(event, newStatus) {
   if (!draggedTask) return;
 
   try {
-    const response = await fetch(`/api/proximos-passos/${draggedTask.id}/status`, {
+    const response = await fetch(`/api/proximos-passos/${draggedTask}/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
@@ -413,14 +448,23 @@ async function handleDrop(event, newStatus) {
   }
 }
 
-function editarTarefa(id, title, description, responsible, deadline, priority) {
-  document.getElementById('edit-task-id').value = id;
-  document.getElementById('edit-title').value = title;
-  document.getElementById('edit-description').value = description;
-  document.getElementById('edit-responsible').value = responsible;
-  document.getElementById('edit-deadline').value = deadline;
-  document.getElementById('edit-priority').value = priority;
-  openModal('modal-editar-tarefa');
+function editarTarefa(taskId) {
+  // Fetch task details via AJAX
+  fetch(`/proximos-passos/${taskId}/detalhes`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(task => {
+    document.getElementById('edit-task-id').value = task.id;
+    document.getElementById('edit-title').value = task.title;
+    document.getElementById('edit-description').value = task.description || '';
+    document.getElementById('edit-responsible').value = task.responsible || '';
+    document.getElementById('edit-deadline').value = task.deadline || '';
+    document.getElementById('edit-priority').value = task.priority || 'media';
+    openModal('modal-editar-tarefa');
+  })
+  .catch(e => alert('Erro ao carregar tarefa: ' + e.message));
 }
 
 async function salvarEdicao(event) {

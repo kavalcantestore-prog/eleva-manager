@@ -634,6 +634,19 @@ async def tarefa_status_api(request: Request, tid: int):
     return JSONResponse({"success": True, "message": "Status atualizado"})
 
 
+@app.get("/proximos-passos/{tid}/detalhes")
+def tarefa_detalhes(request: Request, tid: int):
+    user = require_user(request)
+    conn = get_db()
+    row = conn.execute("SELECT id, title, description, responsible, deadline, priority FROM next_steps WHERE id=?", (tid,)).fetchone()
+    conn.close()
+
+    if not row:
+        return JSONResponse({"error": "Tarefa não encontrada"}, status_code=404)
+
+    return JSONResponse(dict(row))
+
+
 @app.post("/proximos-passos/{tid}/editar")
 def tarefa_editar(request: Request, tid: int, title: str = Form(...), description: str = Form(""), responsible: str = Form(""), deadline: str = Form(""), priority: str = Form("media")):
     user = require_user(request)
