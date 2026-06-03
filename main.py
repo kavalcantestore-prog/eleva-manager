@@ -612,6 +612,28 @@ def tarefa_status(request: Request, tid: int, status: str = Form(...)):
     return RedirectResponse("/proximos-passos", status_code=302)
 
 
+@app.post("/api/proximos-passos/{tid}/status")
+async def tarefa_status_api(request: Request, tid: int):
+    user = require_user(request)
+    data = await request.json()
+    status = data.get("status", "")
+
+    if not status or status not in ["aberto", "em_andamento", "concluido"]:
+        return JSONResponse({"success": False, "error": "Status inválido"}, status_code=400)
+
+    conn = get_db()
+    row = conn.execute("SELECT title FROM next_steps WHERE id=?", (tid,)).fetchone()
+
+    if not row:
+        return JSONResponse({"success": False, "error": "Tarefa não encontrada"}, status_code=404)
+
+    conn.execute("UPDATE next_steps SET status=? WHERE id=?", (status, tid))
+    log_action(conn, user, "atualizou", "próximo passo", f"{row['title']} → {status}")
+    conn.commit(); conn.close()
+
+    return JSONResponse({"success": True, "message": "Status atualizado"})
+
+
 @app.post("/proximos-passos/{tid}/deletar")
 def tarefa_deletar(request: Request, tid: int):
     user = require_user(request)
