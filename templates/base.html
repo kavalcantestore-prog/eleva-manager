@@ -39,7 +39,7 @@
       {% endif %}
       {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_proximos_passos %}
       <li><a href="/proximos-passos" class="{% if '/proximos-passos' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
-        <i class="fa fa-list-check"></i><span>Próximos Passos</span>
+        <i class="fa fa-list-check"></i><span>Tarefas</span>
       </a></li>
       {% endif %}
 
