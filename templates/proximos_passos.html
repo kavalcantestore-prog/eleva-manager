@@ -9,7 +9,6 @@
 <div class="pipeline-board">
   <!-- Coluna: Aberto -->
   {% set aberto_tasks = tasks|selectattr('status', 'equalto', 'aberto')|list %}
-  {% if aberto_tasks %}
   <div class="pipeline-col">
     <div class="pipeline-col-header stage-aberto">
       <span><i class="fa fa-circle-o"></i> Aberto</span>
@@ -35,11 +34,9 @@
       {% endfor %}
     </div>
   </div>
-  {% endif %}
 
   <!-- Coluna: Em andamento -->
   {% set em_andamento_tasks = tasks|selectattr('status', 'equalto', 'em_andamento')|list %}
-  {% if em_andamento_tasks %}
   <div class="pipeline-col">
     <div class="pipeline-col-header stage-em_andamento">
       <span><i class="fa fa-spinner"></i> Em andamento</span>
@@ -65,11 +62,9 @@
       {% endfor %}
     </div>
   </div>
-  {% endif %}
 
   <!-- Coluna: Concluído -->
   {% set concluido_tasks = tasks|selectattr('status', 'equalto', 'concluido')|list %}
-  {% if concluido_tasks %}
   <div class="pipeline-col">
     <div class="pipeline-col-header stage-concluido">
       <span><i class="fa fa-check-circle"></i> Concluído ✓</span>
@@ -95,7 +90,6 @@
       {% endfor %}
     </div>
   </div>
-  {% endif %}
 </div>
 
 <!-- Modal Nova Tarefa -->
