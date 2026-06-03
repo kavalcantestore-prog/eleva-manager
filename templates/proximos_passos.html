@@ -19,12 +19,15 @@
     <div class="kanban-cards" ondrop="handleDrop(event, 'aberto')" ondragover="handleDragOver(event)">
       {% for t in tasks %}
         {% if t.status == 'aberto' %}
-        <div class="kanban-card" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
+        <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
           <div class="card-header">
             <strong>{{ t.title }}</strong>
-            <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
-              <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
-            </form>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }}, '{{ t.title|replace(\"'\", \"\\\\'\" ) }}', '{{ t.description|replace(\"'\", \"\\\\'\" ) if t.description else '' }}', '{{ t.responsible }}', '{{ t.deadline }}', '{{ t.priority }}')"><i class="fa fa-edit"></i></button>
+              <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+                <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+              </form>
+            </div>
           </div>
           {% if t.description %}
           <p class="card-desc">{{ t.description }}</p>
@@ -38,7 +41,7 @@
               <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
               {% endif %}
             </div>
-            <span class="priority-dot priority-{{ t.priority }}" title="Prioridade {{ t.priority }}"></span>
+            <span class="priority-label">{{ t.priority|upper }}</span>
           </div>
         </div>
         {% endif %}
@@ -58,12 +61,15 @@
     <div class="kanban-cards" ondrop="handleDrop(event, 'em_andamento')" ondragover="handleDragOver(event)">
       {% for t in tasks %}
         {% if t.status == 'em_andamento' %}
-        <div class="kanban-card" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
+        <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
           <div class="card-header">
             <strong>{{ t.title }}</strong>
-            <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
-              <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
-            </form>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }}, '{{ t.title|replace(\"'\", \"\\\\'\" ) }}', '{{ t.description|replace(\"'\", \"\\\\'\" ) if t.description else '' }}', '{{ t.responsible }}', '{{ t.deadline }}', '{{ t.priority }}')"><i class="fa fa-edit"></i></button>
+              <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+                <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+              </form>
+            </div>
           </div>
           {% if t.description %}
           <p class="card-desc">{{ t.description }}</p>
@@ -77,7 +83,7 @@
               <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
               {% endif %}
             </div>
-            <span class="priority-dot priority-{{ t.priority }}" title="Prioridade {{ t.priority }}"></span>
+            <span class="priority-label">{{ t.priority|upper }}</span>
           </div>
         </div>
         {% endif %}
@@ -97,12 +103,15 @@
     <div class="kanban-cards" ondrop="handleDrop(event, 'concluido')" ondragover="handleDragOver(event)">
       {% for t in tasks %}
         {% if t.status == 'concluido' %}
-        <div class="kanban-card" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
+        <div class="kanban-card priority-{{ t.priority }}" draggable="true" ondragstart="handleDragStart(event, {{ t.id }}, '{{ t.title }}')" ondragend="handleDragEnd(event)">
           <div class="card-header">
             <strong>{{ t.title }}</strong>
-            <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
-              <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
-            </form>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-primary" onclick="editarTarefa({{ t.id }}, '{{ t.title|replace(\"'\", \"\\\\'\" ) }}', '{{ t.description|replace(\"'\", \"\\\\'\" ) if t.description else '' }}', '{{ t.responsible }}', '{{ t.deadline }}', '{{ t.priority }}')"><i class="fa fa-edit"></i></button>
+              <form method="post" action="/proximos-passos/{{ t.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+                <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+              </form>
+            </div>
           </div>
           {% if t.description %}
           <p class="card-desc">{{ t.description }}</p>
@@ -116,7 +125,7 @@
               <span><i class="fa fa-calendar"></i> {{ t.deadline }}</span>
               {% endif %}
             </div>
-            <span class="priority-dot priority-{{ t.priority }}" title="Prioridade {{ t.priority }}"></span>
+            <span class="priority-label">{{ t.priority|upper }}</span>
           </div>
         </div>
         {% endif %}
@@ -161,6 +170,38 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Editar Tarefa -->
+<div id="modal-editar-tarefa" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Editar Tarefa</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form onsubmit="salvarEdicao(event)">
+      <input type="hidden" id="edit-task-id"/>
+      <div class="form-group"><label>Título *</label><input id="edit-title" name="title" required/></div>
+      <div class="form-group"><label>Descrição</label><textarea id="edit-description" name="description" rows="3"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Responsável</label><input id="edit-responsible" name="responsible"/></div>
+        <div class="form-group"><label>Prazo</label><input id="edit-deadline" type="date" name="deadline"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Prioridade</label>
+          <select id="edit-priority" name="priority">
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
       </div>
     </form>
   </div>
@@ -221,12 +262,29 @@
 
 .kanban-card {
   background: var(--bg);
-  border: 1px solid var(--border);
+  border-left: 4px solid;
   border-radius: 6px;
   padding: 1rem;
   cursor: grab;
   transition: all 0.2s;
   user-select: none;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+}
+
+.kanban-card.priority-alta {
+  border-left-color: #ff4757;
+  background: linear-gradient(to right, rgba(255, 71, 87, 0.05), var(--bg));
+}
+
+.kanban-card.priority-media {
+  border-left-color: #ffa502;
+  background: linear-gradient(to right, rgba(255, 165, 2, 0.05), var(--bg));
+}
+
+.kanban-card.priority-baixa {
+  border-left-color: #2ed573;
+  background: linear-gradient(to right, rgba(46, 213, 115, 0.05), var(--bg));
 }
 
 .kanban-card:active {
@@ -256,9 +314,23 @@
   font-size: 0.95rem;
 }
 
-.card-header .btn {
+.card-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.card-actions .btn {
   padding: 0.3rem 0.5rem;
   font-size: 0.8rem;
+}
+
+.priority-label {
+  background: var(--gold);
+  color: var(--bg);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .card-desc {
@@ -335,6 +407,42 @@ async function handleDrop(event, newStatus) {
       location.reload();
     } else {
       alert('Erro ao mover: ' + (data.error || 'Falha desconhecida'));
+    }
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
+}
+
+function editarTarefa(id, title, description, responsible, deadline, priority) {
+  document.getElementById('edit-task-id').value = id;
+  document.getElementById('edit-title').value = title;
+  document.getElementById('edit-description').value = description;
+  document.getElementById('edit-responsible').value = responsible;
+  document.getElementById('edit-deadline').value = deadline;
+  document.getElementById('edit-priority').value = priority;
+  openModal('modal-editar-tarefa');
+}
+
+async function salvarEdicao(event) {
+  event.preventDefault();
+  const taskId = document.getElementById('edit-task-id').value;
+  const formData = new FormData();
+  formData.append('title', document.getElementById('edit-title').value);
+  formData.append('description', document.getElementById('edit-description').value);
+  formData.append('responsible', document.getElementById('edit-responsible').value);
+  formData.append('deadline', document.getElementById('edit-deadline').value);
+  formData.append('priority', document.getElementById('edit-priority').value);
+
+  try {
+    const response = await fetch(`/proximos-passos/${taskId}/editar`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (response.ok) {
+      location.reload();
+    } else {
+      alert('Erro ao salvar alterações');
     }
   } catch (e) {
     alert('Erro: ' + e.message);

@@ -634,6 +634,17 @@ async def tarefa_status_api(request: Request, tid: int):
     return JSONResponse({"success": True, "message": "Status atualizado"})
 
 
+@app.post("/proximos-passos/{tid}/editar")
+def tarefa_editar(request: Request, tid: int, title: str = Form(...), description: str = Form(""), responsible: str = Form(""), deadline: str = Form(""), priority: str = Form("media")):
+    user = require_user(request)
+    conn = get_db()
+    conn.execute("UPDATE next_steps SET title=?, description=?, responsible=?, deadline=?, priority=? WHERE id=?",
+                 (title, description, responsible, deadline, priority, tid))
+    log_action(conn, user, "editou", "próximo passo", f"{title}")
+    conn.commit(); conn.close()
+    return RedirectResponse("/proximos-passos", status_code=302)
+
+
 @app.post("/proximos-passos/{tid}/deletar")
 def tarefa_deletar(request: Request, tid: int):
     user = require_user(request)
