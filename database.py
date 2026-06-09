@@ -29,14 +29,13 @@ def init_db():
         except:
             pass
 
-    # Check if scheduled_posts table exists and make scheduled_for nullable
+    # Recreate scheduled_posts table if it exists to make scheduled_for nullable
     try:
-        cursor = c.execute("PRAGMA table_info(scheduled_posts)")
-        sp_columns = [row[1] for row in cursor.fetchall()]
-        # If table exists, recreate it without NOT NULL on scheduled_for
-        if sp_columns:
+        cursor = c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='scheduled_posts'")
+        if cursor.fetchone():
+            c.execute("PRAGMA foreign_keys=OFF")
             c.execute("""
-                CREATE TABLE IF NOT EXISTS scheduled_posts_new (
+                CREATE TABLE scheduled_posts_new (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     client_id INTEGER,
                     client_name TEXT,
@@ -52,16 +51,11 @@ def init_db():
                     created_at TEXT DEFAULT (datetime('now','localtime'))
                 )
             """)
-            try:
-                c.execute("""
-                    INSERT INTO scheduled_posts_new
-                    SELECT * FROM scheduled_posts
-                """)
-                c.execute("DROP TABLE scheduled_posts")
-                c.execute("ALTER TABLE scheduled_posts_new RENAME TO scheduled_posts")
-                conn.commit()
-            except:
-                c.execute("DROP TABLE IF EXISTS scheduled_posts_new")
+            c.execute("INSERT INTO scheduled_posts_new SELECT * FROM scheduled_posts")
+            c.execute("DROP TABLE scheduled_posts")
+            c.execute("ALTER TABLE scheduled_posts_new RENAME TO scheduled_posts")
+            c.execute("PRAGMA foreign_keys=ON")
+            conn.commit()
     except:
         pass
 

@@ -706,32 +706,22 @@ def social_media_page(request: Request, client_id: int):
 
 @app.post("/social-media/{client_id}/novo")
 def social_media_novo(request: Request, client_id: int, platform: str = Form(...), content: str = Form(...), image_url: str = Form(""), responsible: str = Form(""), scheduled_for: str = Form(""), status: str = Form("ideias")):
-    try:
-        print(f"DEBUG: Creating post - client_id={client_id}, platform={platform}")
-        user = require_user(request)
-        conn = get_db()
-        client = conn.execute("SELECT name FROM clients WHERE id=?", (client_id,)).fetchone()
+    user = require_user(request)
+    conn = get_db()
+    client = conn.execute("SELECT name FROM clients WHERE id=?", (client_id,)).fetchone()
 
-        if not client:
-            print(f"DEBUG: Client {client_id} not found")
-            raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-        client_name = client['name']
-        print(f"DEBUG: Inserting post for {client_name}")
-        conn.execute(
-            "INSERT INTO scheduled_posts (client_id, client_name, platform, content, image_url, responsible, scheduled_for, status, created_by) VALUES (?,?,?,?,?,?,?,?,?)",
-            (client_id, client_name, platform, content, image_url or None, responsible, scheduled_for or None, status, user["id"])
-        )
-        log_action(conn, user, "criou", "post social media", f"{platform}: {content[:50]}")
-        conn.commit()
-        conn.close()
-        print(f"DEBUG: Post created successfully")
-        return RedirectResponse(f"/social-media/{client_id}", status_code=302)
-    except Exception as e:
-        print(f"ERROR creating post: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return JSONResponse({"error": f"Erro ao criar post: {str(e)}"}, status_code=500)
+    client_name = client['name']
+    conn.execute(
+        "INSERT INTO scheduled_posts (client_id, client_name, platform, content, image_url, responsible, scheduled_for, status, created_by) VALUES (?,?,?,?,?,?,?,?,?)",
+        (client_id, client_name, platform, content, image_url or None, responsible, scheduled_for or None, status, user["id"])
+    )
+    log_action(conn, user, "criou", "post social media", f"{platform}: {content[:50]}")
+    conn.commit()
+    conn.close()
+    return RedirectResponse(f"/social-media/{client_id}", status_code=302)
 
 
 @app.get("/social-media/{client_id}/posts/{pid}/detalhes")
