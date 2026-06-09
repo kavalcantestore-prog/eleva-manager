@@ -29,6 +29,42 @@ def init_db():
         except:
             pass
 
+    # Check if scheduled_posts table exists and make scheduled_for nullable
+    try:
+        cursor = c.execute("PRAGMA table_info(scheduled_posts)")
+        sp_columns = [row[1] for row in cursor.fetchall()]
+        # If table exists, recreate it without NOT NULL on scheduled_for
+        if sp_columns:
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS scheduled_posts_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_id INTEGER,
+                    client_name TEXT,
+                    platform TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    image_url TEXT,
+                    services TEXT,
+                    scheduled_for TEXT,
+                    status TEXT DEFAULT 'agendado',
+                    posted_at TEXT,
+                    responsible TEXT,
+                    created_by INTEGER,
+                    created_at TEXT DEFAULT (datetime('now','localtime'))
+                )
+            """)
+            try:
+                c.execute("""
+                    INSERT INTO scheduled_posts_new
+                    SELECT * FROM scheduled_posts
+                """)
+                c.execute("DROP TABLE scheduled_posts")
+                c.execute("ALTER TABLE scheduled_posts_new RENAME TO scheduled_posts")
+                conn.commit()
+            except:
+                c.execute("DROP TABLE IF EXISTS scheduled_posts_new")
+    except:
+        pass
+
     c.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
