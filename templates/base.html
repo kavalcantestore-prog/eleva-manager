@@ -111,6 +111,9 @@
         <i class="fa fa-pen-nib"></i><span>Copys</span>
       </a></li>
       {% endif %}
+      <li><a href="/social-media" class="{% if '/social-media' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
+        <i class="fa fa-share-alt"></i><span>Social Media</span>
+      </a></li>
       {% if user.role in ['admin', 'ceo'] or user.permissions.can_view_anuncios %}
       <li><a href="/anuncios" class="{% if '/anuncios' in request.url.path %}active{% endif %}" onclick="closeSidebar()">
         <i class="fa fa-bullhorn"></i><span>Anúncios</span>

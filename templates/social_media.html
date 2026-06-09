@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}Social Media — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-share-alt"></i> Social Media</h2>
+  <button class="btn btn-primary" onclick="openModal('modal-novo-post')"><i class="fa fa-plus"></i> Novo Post</button>
+</div>
+
+<div class="pipeline-board">
+  <!-- Coluna: Ideias -->
+  {% set ideias = posts|selectattr('status', 'equalto', 'ideias')|list %}
+  <div class="pipeline-col">
+    <div class="pipeline-col-header stage-ideias">
+      <span><i class="fa fa-lightbulb"></i> Ideias</span>
+      <span class="count">{{ ideias|length }}</span>
+    </div>
+    <div class="pipeline-cards" ondrop="handleDrop(event, 'ideias')" ondragover="handleDragOver(event)">
+      {% for post in ideias %}
+      <div class="pipeline-card" draggable="true" ondragstart="handleDragStart(event, {{ post.id }})" ondragend="handleDragEnd(event)">
+        <div class="pipeline-card-name">{{ post.content[:50] }}...</div>
+        {% if post.client_name %}<div class="pipeline-card-company">{{ post.client_name }}</div>{% endif %}
+        <div class="pipeline-card-tag">{{ post.platform|upper }}</div>
+        <div class="pipeline-card-meta">
+          {% if post.responsible %}<span><i class="fa fa-user"></i> {{ post.responsible }}</span>{% endif %}
+        </div>
+        <div class="pipeline-card-actions">
+          <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
+          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% if ideias|length == 0 %}<div class="pipeline-empty">Nenhum post</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Coluna: Em Produção -->
+  {% set em_producao = posts|selectattr('status', 'equalto', 'em_producao')|list %}
+  <div class="pipeline-col">
+    <div class="pipeline-col-header stage-em_producao">
+      <span><i class="fa fa-pencil"></i> Em Produção</span>
+      <span class="count">{{ em_producao|length }}</span>
+    </div>
+    <div class="pipeline-cards" ondrop="handleDrop(event, 'em_producao')" ondragover="handleDragOver(event)">
+      {% for post in em_producao %}
+      <div class="pipeline-card" draggable="true" ondragstart="handleDragStart(event, {{ post.id }})" ondragend="handleDragEnd(event)">
+        <div class="pipeline-card-name">{{ post.content[:50] }}...</div>
+        {% if post.client_name %}<div class="pipeline-card-company">{{ post.client_name }}</div>{% endif %}
+        <div class="pipeline-card-tag">{{ post.platform|upper }}</div>
+        <div class="pipeline-card-meta">
+          {% if post.responsible %}<span><i class="fa fa-user"></i> {{ post.responsible }}</span>{% endif %}
+        </div>
+        <div class="pipeline-card-actions">
+          <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
+          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% if em_producao|length == 0 %}<div class="pipeline-empty">Nenhum post</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Coluna: Agendado -->
+  {% set agendado = posts|selectattr('status', 'equalto', 'agendado')|list %}
+  <div class="pipeline-col">
+    <div class="pipeline-col-header stage-agendado">
+      <span><i class="fa fa-calendar"></i> Agendado</span>
+      <span class="count">{{ agendado|length }}</span>
+    </div>
+    <div class="pipeline-cards" ondrop="handleDrop(event, 'agendado')" ondragover="handleDragOver(event)">
+      {% for post in agendado %}
+      <div class="pipeline-card" draggable="true" ondragstart="handleDragStart(event, {{ post.id }})" ondragend="handleDragEnd(event)">
+        <div class="pipeline-card-name">{{ post.content[:50] }}...</div>
+        {% if post.client_name %}<div class="pipeline-card-company">{{ post.client_name }}</div>{% endif %}
+        <div class="pipeline-card-tag">{{ post.platform|upper }}</div>
+        <div class="pipeline-card-meta">
+          {% if post.scheduled_for %}<span><i class="fa fa-clock"></i> {{ post.scheduled_for }}</span>{% endif %}
+          {% if post.responsible %}<span><i class="fa fa-user"></i> {{ post.responsible }}</span>{% endif %}
+        </div>
+        <div class="pipeline-card-actions">
+          <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
+          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% if agendado|length == 0 %}<div class="pipeline-empty">Nenhum post</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Coluna: Publicado -->
+  {% set publicado = posts|selectattr('status', 'equalto', 'publicado')|list %}
+  <div class="pipeline-col">
+    <div class="pipeline-col-header stage-publicado">
+      <span><i class="fa fa-check"></i> Publicado</span>
+      <span class="count">{{ publicado|length }}</span>
+    </div>
+    <div class="pipeline-cards" ondrop="handleDrop(event, 'publicado')" ondragover="handleDragOver(event)">
+      {% for post in publicado %}
+      <div class="pipeline-card" draggable="true" ondragstart="handleDragStart(event, {{ post.id }})" ondragend="handleDragEnd(event)">
+        <div class="pipeline-card-name">{{ post.content[:50] }}...</div>
+        {% if post.client_name %}<div class="pipeline-card-company">{{ post.client_name }}</div>{% endif %}
+        <div class="pipeline-card-tag">{{ post.platform|upper }}</div>
+        <div class="pipeline-card-meta">
+          {% if post.posted_at %}<span><i class="fa fa-calendar-check"></i> {{ post.posted_at }}</span>{% endif %}
+          {% if post.responsible %}<span><i class="fa fa-user"></i> {{ post.responsible }}</span>{% endif %}
+        </div>
+        <div class="pipeline-card-actions">
+          <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
+          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% if publicado|length == 0 %}<div class="pipeline-empty">Nenhum post</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Coluna: Análise -->
+  {% set analise = posts|selectattr('status', 'equalto', 'analise')|list %}
+  <div class="pipeline-col">
+    <div class="pipeline-col-header stage-analise">
+      <span><i class="fa fa-chart-bar"></i> Análise</span>
+      <span class="count">{{ analise|length }}</span>
+    </div>
+    <div class="pipeline-cards" ondrop="handleDrop(event, 'analise')" ondragover="handleDragOver(event)">
+      {% for post in analise %}
+      <div class="pipeline-card" draggable="true" ondragstart="handleDragStart(event, {{ post.id }})" ondragend="handleDragEnd(event)">
+        <div class="pipeline-card-name">{{ post.content[:50] }}...</div>
+        {% if post.client_name %}<div class="pipeline-card-company">{{ post.client_name }}</div>{% endif %}
+        <div class="pipeline-card-tag">{{ post.platform|upper }}</div>
+        <div class="pipeline-card-meta">
+          {% if post.posted_at %}<span><i class="fa fa-calendar-check"></i> {{ post.posted_at }}</span>{% endif %}
+          {% if post.responsible %}<span><i class="fa fa-user"></i> {{ post.responsible }}</span>{% endif %}
+        </div>
+        <div class="pipeline-card-actions">
+          <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
+          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+            <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% if analise|length == 0 %}<div class="pipeline-empty">Nenhum post</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo Post -->
+<div id="modal-novo-post" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Novo Post</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form method="post" action="/social-media/novo">
+      <div class="form-row">
+        <div class="form-group"><label>Cliente *</label>
+          <select name="client_id" required>
+            <option value="">Selecione...</option>
+            {% for client in clients %}
+            <option value="{{ client.id }}">{{ client.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>Rede Social *</label>
+          <select name="platform" required>
+            <option value="">Selecione...</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="twitter">Twitter</option>
+            <option value="facebook">Facebook</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Conteúdo *</label><textarea name="content" rows="4" required></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>URL da Imagem</label><input name="image_url" type="url"/></div>
+        <div class="form-group"><label>Responsável</label><input name="responsible"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select name="status">
+            <option value="ideias" selected>Ideias</option>
+            <option value="em_producao">Em Produção</option>
+            <option value="agendado">Agendado</option>
+            <option value="publicado">Publicado</option>
+            <option value="analise">Análise</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Agendado para</label><input name="scheduled_for" type="datetime-local"/></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Editar Post -->
+<div id="modal-editar-post" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Editar Post</h3>
+      <button onclick="closeModal()"><i class="fa fa-times"></i></button>
+    </div>
+    <form onsubmit="salvarEdicao(event)">
+      <input type="hidden" id="edit-post-id"/>
+      <div class="form-row">
+        <div class="form-group"><label>Cliente *</label>
+          <select id="edit-client_id" name="client_id" required>
+            <option value="">Selecione...</option>
+            {% for client in clients %}
+            <option value="{{ client.id }}">{{ client.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>Rede Social *</label>
+          <select id="edit-platform" name="platform" required>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="twitter">Twitter</option>
+            <option value="facebook">Facebook</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Conteúdo *</label><textarea id="edit-content" name="content" rows="4" required></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>URL da Imagem</label><input id="edit-image_url" name="image_url" type="url"/></div>
+        <div class="form-group"><label>Responsável</label><input id="edit-responsible" name="responsible"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Agendado para</label><input id="edit-scheduled_for" name="scheduled_for" type="datetime-local"/></div>
+        <div class="form-group"><label>Publicado em</label><input id="edit-posted_at" name="posted_at" type="datetime-local"/></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.pipeline-col-header.stage-ideias { border-left: 4px solid #9b59b6; }
+.pipeline-col-header.stage-em_producao { border-left: 4px solid #3498db; }
+.pipeline-col-header.stage-agendado { border-left: 4px solid #f39c12; }
+.pipeline-col-header.stage-publicado { border-left: 4px solid #27ae60; }
+.pipeline-col-header.stage-analise { border-left: 4px solid #e74c3c; }
+</style>
+
+<script>
+let draggedCard = null;
+
+function handleDragStart(event, postId) {
+  draggedCard = { id: postId };
+  event.dataTransfer.effectAllowed = 'move';
+  event.target.style.opacity = '0.5';
+}
+
+function handleDragEnd(event) {
+  event.target.style.opacity = '1';
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  event.currentTarget.style.backgroundColor = 'rgba(201, 160, 54, 0.1)';
+}
+
+async function handleDrop(event, newStatus) {
+  event.preventDefault();
+  event.currentTarget.style.backgroundColor = '';
+
+  if (!draggedCard) return;
+
+  try {
+    const response = await fetch(`/api/social-media/${draggedCard.id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erro ao mover: ' + (data.error || 'Falha desconhecida'));
+    }
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
+}
+
+function editarPost(postId) {
+  fetch(`/social-media/${postId}/detalhes`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(post => {
+    document.getElementById('edit-post-id').value = post.id;
+    document.getElementById('edit-client_id').value = post.client_id || '';
+    document.getElementById('edit-platform').value = post.platform;
+    document.getElementById('edit-content').value = post.content;
+    document.getElementById('edit-image_url').value = post.image_url || '';
+    document.getElementById('edit-responsible').value = post.responsible || '';
+    document.getElementById('edit-scheduled_for').value = post.scheduled_for || '';
+    document.getElementById('edit-posted_at').value = post.posted_at || '';
+    openModal('modal-editar-post');
+  })
+  .catch(e => alert('Erro ao carregar post: ' + e.message));
+}
+
+async function salvarEdicao(event) {
+  event.preventDefault();
+  const postId = document.getElementById('edit-post-id').value;
+  const formData = new FormData();
+  formData.append('client_id', document.getElementById('edit-client_id').value);
+  formData.append('platform', document.getElementById('edit-platform').value);
+  formData.append('content', document.getElementById('edit-content').value);
+  formData.append('image_url', document.getElementById('edit-image_url').value);
+  formData.append('responsible', document.getElementById('edit-responsible').value);
+  formData.append('scheduled_for', document.getElementById('edit-scheduled_for').value);
+  formData.append('posted_at', document.getElementById('edit-posted_at').value);
+
+  try {
+    const response = await fetch(`/social-media/${postId}/editar`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (response.ok) {
+      location.reload();
+    } else {
+      alert('Erro ao salvar alterações');
+    }
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
+}
+</script>
+{% endblock %}

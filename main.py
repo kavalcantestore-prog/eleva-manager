@@ -669,6 +669,101 @@ def tarefa_deletar(request: Request, tid: int):
     return RedirectResponse("/proximos-passos", status_code=302)
 
 
+# ── Social Media ──────────────────────────────────────────────────────────────
+
+@app.get("/social-media", response_class=HTMLResponse)
+def social_media_page(request: Request):
+    user = require_user(request)
+    conn = get_db()
+    posts = conn.execute("SELECT * FROM scheduled_posts ORDER BY created_at DESC").fetchall()
+    clients = conn.execute("SELECT id, name FROM clients ORDER BY name").fetchall()
+    conn.close()
+    return templates.TemplateResponse("social_media.html", {
+        "request": request,
+        "user": dict(user),
+        "posts": [dict(p) for p in posts],
+        "clients": [dict(c) for c in clients]
+    })
+
+
+@app.post("/social-media/novo")
+def social_media_novo(request: Request, client_id: int = Form(...), platform: str = Form(...), content: str = Form(...), image_url: str = Form(""), responsible: str = Form(""), scheduled_for: str = Form(""), status: str = Form("ideias")):
+    user = require_user(request)
+    conn = get_db()
+    client = conn.execute("SELECT name FROM clients WHERE id=?", (client_id,)).fetchone()
+    client_name = client['name'] if client else ""
+
+    conn.execute(
+        "INSERT INTO scheduled_posts (client_id, client_name, platform, content, image_url, responsible, scheduled_for, status, created_by) VALUES (?,?,?,?,?,?,?,?,?)",
+        (client_id, client_name, platform, content, image_url or None, responsible, scheduled_for or None, status, user["id"])
+    )
+    log_action(conn, user, "criou", "post social media", f"{platform}: {content[:50]}")
+    conn.commit(); conn.close()
+    return RedirectResponse("/social-media", status_code=302)
+
+
+@app.get("/social-media/{pid}/detalhes")
+def social_media_detalhes(request: Request, pid: int):
+    user = require_user(request)
+    conn = get_db()
+    post = conn.execute("SELECT * FROM scheduled_posts WHERE id=?", (pid,)).fetchone()
+    conn.close()
+
+    if not post:
+        return JSONResponse({"error": "Post não encontrado"}, status_code=404)
+
+    return JSONResponse(dict(post))
+
+
+@app.post("/social-media/{pid}/editar")
+def social_media_editar(request: Request, pid: int, client_id: int = Form(...), platform: str = Form(...), content: str = Form(...), image_url: str = Form(""), responsible: str = Form(""), scheduled_for: str = Form(""), posted_at: str = Form("")):
+    user = require_user(request)
+    conn = get_db()
+    client = conn.execute("SELECT name FROM clients WHERE id=?", (client_id,)).fetchone()
+    client_name = client['name'] if client else ""
+
+    conn.execute(
+        "UPDATE scheduled_posts SET client_id=?, client_name=?, platform=?, content=?, image_url=?, responsible=?, scheduled_for=?, posted_at=? WHERE id=?",
+        (client_id, client_name, platform, content, image_url or None, responsible, scheduled_for or None, posted_at or None, pid)
+    )
+    log_action(conn, user, "editou", "post social media", f"{platform}: {content[:50]}")
+    conn.commit(); conn.close()
+    return RedirectResponse("/social-media", status_code=302)
+
+
+@app.post("/api/social-media/{pid}/status")
+async def social_media_status_api(request: Request, pid: int):
+    user = require_user(request)
+    data = await request.json()
+    status = data.get("status", "")
+
+    if not status or status not in ["ideias", "em_producao", "agendado", "publicado", "analise"]:
+        return JSONResponse({"success": False, "error": "Status inválido"}, status_code=400)
+
+    conn = get_db()
+    post = conn.execute("SELECT content FROM scheduled_posts WHERE id=?", (pid,)).fetchone()
+
+    if not post:
+        return JSONResponse({"success": False, "error": "Post não encontrado"}, status_code=404)
+
+    conn.execute("UPDATE scheduled_posts SET status=? WHERE id=?", (status, pid))
+    log_action(conn, user, "atualizou", "post social media", f"{post['content'][:50]} → {status}")
+    conn.commit(); conn.close()
+
+    return JSONResponse({"success": True, "message": "Status atualizado"})
+
+
+@app.post("/social-media/{pid}/deletar")
+def social_media_deletar(request: Request, pid: int):
+    user = require_user(request)
+    conn = get_db()
+    row = conn.execute("SELECT content FROM scheduled_posts WHERE id=?", (pid,)).fetchone()
+    conn.execute("DELETE FROM scheduled_posts WHERE id=?", (pid,))
+    if row: log_action(conn, user, "removeu", "post social media", row['content'][:50])
+    conn.commit(); conn.close()
+    return RedirectResponse("/social-media", status_code=302)
+
+
 # ── Pipeline CRM ──────────────────────────────────────────────────────────────
 
 STAGES = ["prospecto", "proposta", "negociacao", "fechado", "perdido"]
