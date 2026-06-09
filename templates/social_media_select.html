@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Selecionar Cliente — Social Media — ELEVA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2><i class="fa fa-share-alt"></i> Social Media</h2>
+  <p style="color: var(--muted); margin-top: 0.5rem;">Selecione um cliente para gerenciar seu conteúdo</p>
+</div>
+
+<div class="clients-grid">
+  {% if clients %}
+    {% for client in clients %}
+    <a href="/social-media/{{ client.id }}" class="client-card">
+      <div class="client-card-header">
+        <h3>{{ client.name }}</h3>
+        {% if client.company %}<p class="client-company">{{ client.company }}</p>{% endif %}
+      </div>
+      <div class="client-card-info">
+        {% if client.email %}<span><i class="fa fa-envelope"></i> {{ client.email }}</span>{% endif %}
+        {% if client.phone %}<span><i class="fa fa-phone"></i> {{ client.phone }}</span>{% endif %}
+      </div>
+      <div class="client-card-footer">
+        <span class="btn btn-primary"><i class="fa fa-arrow-right"></i> Acessar Social Media</span>
+      </div>
+    </a>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state large">
+    <i class="fa fa-inbox"></i>
+    <p>Nenhum cliente cadastrado.</p>
+    <a href="/clientes" class="btn btn-primary" style="margin-top: 1rem;">Cadastrar Cliente</a>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.clients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.client-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+.client-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 8px 24px rgba(201, 160, 54, 0.15);
+  transform: translateY(-4px);
+}
+
+.client-card-header {
+  margin-bottom: 1rem;
+}
+
+.client-card-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.2rem;
+}
+
+.client-company {
+  margin: 0.5rem 0 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.client-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: auto;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.client-card-info span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.client-card-footer {
+  margin-top: 1rem;
+}
+
+.client-card-footer .btn {
+  width: 100%;
+  text-align: center;
+  display: block;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--bg2);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--border);
+}
+</style>
+{% endblock %}

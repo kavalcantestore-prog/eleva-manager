@@ -1,8 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Social Media — ELEVA{% endblock %}
+{% block title %}Social Media — {{ client.name }} — ELEVA{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h2><i class="fa fa-share-alt"></i> Social Media</h2>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <a href="/social-media" class="btn btn-ghost"><i class="fa fa-arrow-left"></i> Voltar</a>
+    <div>
+      <h2 style="margin:0"><i class="fa fa-share-alt"></i> Social Media</h2>
+      <p style="margin:0.5rem 0 0 0;color:var(--muted);font-size:0.9rem">{{ client.name }} {% if client.company %}• {{ client.company }}{% endif %}</p>
+    </div>
+  </div>
   <button class="btn btn-primary" onclick="openModal('modal-novo-post')"><i class="fa fa-plus"></i> Novo Post</button>
 </div>
 
@@ -25,7 +31,7 @@
         </div>
         <div class="pipeline-card-actions">
           <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
-          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+          <form method="post" action="/social-media/{{ client.id }}/posts/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
             <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
           </form>
         </div>
@@ -53,7 +59,7 @@
         </div>
         <div class="pipeline-card-actions">
           <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
-          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+          <form method="post" action="/social-media/{{ client.id }}/posts/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
             <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
           </form>
         </div>
@@ -82,7 +88,7 @@
         </div>
         <div class="pipeline-card-actions">
           <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
-          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+          <form method="post" action="/social-media/{{ client.id }}/posts/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
             <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
           </form>
         </div>
@@ -111,7 +117,7 @@
         </div>
         <div class="pipeline-card-actions">
           <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
-          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+          <form method="post" action="/social-media/{{ client.id }}/posts/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
             <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
           </form>
         </div>
@@ -140,7 +146,7 @@
         </div>
         <div class="pipeline-card-actions">
           <button class="btn btn-sm btn-primary" onclick="editarPost({{ post.id }})"><i class="fa fa-edit"></i></button>
-          <form method="post" action="/social-media/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
+          <form method="post" action="/social-media/{{ client.id }}/posts/{{ post.id }}/deletar" style="display:inline" onsubmit="return confirm('Remover?')">
             <button class="btn btn-sm btn-danger"><i class="fa fa-trash"></i></button>
           </form>
         </div>
@@ -155,19 +161,12 @@
 <div id="modal-novo-post" class="modal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3>Novo Post</h3>
+      <h3>Novo Post para {{ client.name }}</h3>
       <button onclick="closeModal()"><i class="fa fa-times"></i></button>
     </div>
-    <form method="post" action="/social-media/novo">
+    <form method="post" action="/social-media/{{ client.id }}/novo">
+      <input type="hidden" name="client_id" value="{{ client.id }}"/>
       <div class="form-row">
-        <div class="form-group"><label>Cliente *</label>
-          <select name="client_id" required>
-            <option value="">Selecione...</option>
-            {% for client in clients %}
-            <option value="{{ client.id }}">{{ client.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
         <div class="form-group"><label>Rede Social *</label>
           <select name="platform" required>
             <option value="">Selecione...</option>
@@ -213,15 +212,8 @@
     </div>
     <form onsubmit="salvarEdicao(event)">
       <input type="hidden" id="edit-post-id"/>
+      <input type="hidden" id="edit-client_id" value="{{ client.id }}"/>
       <div class="form-row">
-        <div class="form-group"><label>Cliente *</label>
-          <select id="edit-client_id" name="client_id" required>
-            <option value="">Selecione...</option>
-            {% for client in clients %}
-            <option value="{{ client.id }}">{{ client.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
         <div class="form-group"><label>Rede Social *</label>
           <select id="edit-platform" name="platform" required>
             <option value="instagram">Instagram</option>
@@ -283,7 +275,8 @@ async function handleDrop(event, newStatus) {
   if (!draggedCard) return;
 
   try {
-    const response = await fetch(`/api/social-media/${draggedCard.id}/status`, {
+    const clientId = new URLSearchParams(window.location.search).get('client_id') || '{{ client.id }}';
+    const response = await fetch(`/api/social-media/${clientId}/posts/${draggedCard.id}/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
@@ -302,7 +295,8 @@ async function handleDrop(event, newStatus) {
 }
 
 function editarPost(postId) {
-  fetch(`/social-media/${postId}/detalhes`, {
+  const clientId = '{{ client.id }}';
+  fetch(`/social-media/${clientId}/posts/${postId}/detalhes`, {
     method: 'GET',
     headers: { 'Accept': 'application/json' }
   })
@@ -324,8 +318,8 @@ function editarPost(postId) {
 async function salvarEdicao(event) {
   event.preventDefault();
   const postId = document.getElementById('edit-post-id').value;
+  const clientId = document.getElementById('edit-client_id').value;
   const formData = new FormData();
-  formData.append('client_id', document.getElementById('edit-client_id').value);
   formData.append('platform', document.getElementById('edit-platform').value);
   formData.append('content', document.getElementById('edit-content').value);
   formData.append('image_url', document.getElementById('edit-image_url').value);
@@ -334,7 +328,7 @@ async function salvarEdicao(event) {
   formData.append('posted_at', document.getElementById('edit-posted_at').value);
 
   try {
-    const response = await fetch(`/social-media/${postId}/editar`, {
+    const response = await fetch(`/social-media/${clientId}/posts/${postId}/editar`, {
       method: 'POST',
       body: formData
     });
