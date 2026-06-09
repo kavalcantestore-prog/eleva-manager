@@ -178,11 +178,7 @@
           </select>
         </div>
       </div>
-      <div class="form-group"><label>Conteúdo *</label><textarea name="content" rows="4" required></textarea></div>
-      <div class="form-row">
-        <div class="form-group"><label>URL da Imagem</label><input name="image_url" type="url"/></div>
-        <div class="form-group"><label>Responsável</label><input name="responsible"/></div>
-      </div>
+      <div class="form-group"><label>Conteúdo *</label><textarea name="content" rows="8" required style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 1rem; line-height: 1.6;"></textarea></div>
       <div class="form-row">
         <div class="form-group"><label>Status</label>
           <select name="status">
@@ -224,11 +220,7 @@
           </select>
         </div>
       </div>
-      <div class="form-group"><label>Conteúdo *</label><textarea id="edit-content" name="content" rows="4" required></textarea></div>
-      <div class="form-row">
-        <div class="form-group"><label>URL da Imagem</label><input id="edit-image_url" name="image_url" type="url"/></div>
-        <div class="form-group"><label>Responsável</label><input id="edit-responsible" name="responsible"/></div>
-      </div>
+      <div class="form-group"><label>Conteúdo *</label><textarea id="edit-content" name="content" rows="8" required style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 1rem; line-height: 1.6;"></textarea></div>
       <div class="form-row">
         <div class="form-group"><label>Agendado para</label><input id="edit-scheduled_for" name="scheduled_for" type="datetime-local"/></div>
         <div class="form-group"><label>Publicado em</label><input id="edit-posted_at" name="posted_at" type="datetime-local"/></div>
@@ -306,8 +298,6 @@ function editarPost(postId) {
     document.getElementById('edit-client_id').value = post.client_id || '';
     document.getElementById('edit-platform').value = post.platform;
     document.getElementById('edit-content').value = post.content;
-    document.getElementById('edit-image_url').value = post.image_url || '';
-    document.getElementById('edit-responsible').value = post.responsible || '';
     document.getElementById('edit-scheduled_for').value = post.scheduled_for || '';
     document.getElementById('edit-posted_at').value = post.posted_at || '';
     openModal('modal-editar-post');
@@ -322,8 +312,8 @@ async function salvarEdicao(event) {
   const formData = new FormData();
   formData.append('platform', document.getElementById('edit-platform').value);
   formData.append('content', document.getElementById('edit-content').value);
-  formData.append('image_url', document.getElementById('edit-image_url').value);
-  formData.append('responsible', document.getElementById('edit-responsible').value);
+  formData.append('image_url', '');
+  formData.append('responsible', '');
   formData.append('scheduled_for', document.getElementById('edit-scheduled_for').value);
   formData.append('posted_at', document.getElementById('edit-posted_at').value);
 
