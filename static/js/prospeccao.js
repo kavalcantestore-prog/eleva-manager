@@ -266,49 +266,64 @@ function abrirQRCode() {
 // Send automatically via WhatsApp Web
 async function enviarAutomatico() {
   if (!selectedMessage || !selectedProspect) {
+    console.error('Dados inválidos:', { selectedMessage, selectedProspect });
     alert('Erro ao enviar mensagem');
     return;
   }
 
+  console.log('=== ENVIAR WHATSAPP ===');
+  console.log('Telefone:', selectedProspect.whatsapp);
+  console.log('Mensagem:', selectedMessage);
+  console.log('Prospect ID:', selectedProspect.id);
+
   try {
+    const payload = {
+      phone: selectedProspect.whatsapp,
+      message: selectedMessage,
+      prospect_id: selectedProspect.id
+    };
+
+    console.log('Enviando payload:', payload);
+
     const response = await fetch('/prospeccao/enviar-whatsapp-auto', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone: selectedProspect.whatsapp,
-        message: selectedMessage,
-        prospect_id: selectedProspect.id
-      })
+      body: JSON.stringify(payload)
     });
 
+    console.log('Status da resposta:', response.status);
     const data = await response.json();
+    console.log('Dados da resposta:', data);
 
     if (data.success && data.wa_link) {
       closeModal('modal-escolher-envio');
 
-      console.log('Link WhatsApp:', data.wa_link);
+      console.log('✅ Link WhatsApp gerado:', data.wa_link);
 
-      // Cria um elemento <a> e clica nele (mais confiável)
+      // Cria um elemento <a> e clica nele
       const linkElement = document.createElement('a');
       linkElement.href = data.wa_link;
       linkElement.target = '_blank';
       linkElement.rel = 'noopener noreferrer';
       document.body.appendChild(linkElement);
 
-      // Força o clique após adicionar ao DOM
+      console.log('🔗 Elemento criado, clicando...');
+
+      linkElement.click();
+
       setTimeout(() => {
-        linkElement.click();
         document.body.removeChild(linkElement);
-      }, 50);
+      }, 100);
 
       document.getElementById('total-sent').textContent =
         parseInt(document.getElementById('total-sent').textContent) + 1;
     } else {
+      console.error('❌ Erro na resposta:', data);
       alert('Erro: ' + (data.error || 'Falha ao gerar link'));
     }
   } catch (error) {
-    console.error('Erro:', error);
-    alert('Erro ao enviar mensagem');
+    console.error('❌ Erro no fetch:', error);
+    alert('Erro ao enviar mensagem: ' + error.message);
   }
 }
 
