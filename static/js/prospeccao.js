@@ -181,7 +181,12 @@ function abrirModalMensagem(event, prospectId) {
 // Generate messages using AI
 async function gerarMensagens(prospect) {
   const container = document.getElementById('messages-options');
-  container.innerHTML = '<p class="loading">Gerando mensagens com IA...</p>';
+  container.innerHTML = `
+    <div style="text-align: center; padding: 1rem;">
+      <div style="animation: spin 1s linear infinite; display: inline-block; font-size: 1.5rem;">⚙️</div>
+      <p style="margin-top: 0.5rem; color: var(--muted);">Gerando mensagens com IA...</p>
+    </div>
+  `;
 
   try {
     const response = await fetch('/prospeccao/gerar-mensagem', {
@@ -200,17 +205,17 @@ async function gerarMensagens(prospect) {
 
     if (data.success) {
       container.innerHTML = data.messages.map((msg, idx) => `
-        <div class="message-option" onclick="selecionarMensagem(this, '${msg}')">
+        <div class="message-option" onclick="selecionarMensagem(this, \`${msg.replace(/`/g, '\\`')}\`)">
           <small>#${idx + 1}</small><br/>
           ${msg}
         </div>
       `).join('');
     } else {
-      container.innerHTML = '<p class="error">Erro ao gerar mensagens</p>';
+      container.innerHTML = '<p class="error">❌ Erro ao gerar. Tente novamente.</p>';
     }
   } catch (error) {
     console.error('Erro:', error);
-    container.innerHTML = '<p class="error">Erro ao gerar mensagens</p>';
+    container.innerHTML = '<p class="error">❌ Erro ao gerar. Tente novamente.</p>';
   }
 }
 
@@ -281,15 +286,10 @@ async function enviarAutomatico() {
     if (data.success) {
       closeModal('modal-escolher-envio');
 
-      if (data.wa_link && data.manual) {
-        // Browser automation não funcionou, abrir link manualmente
+      if (data.wa_link) {
         window.open(data.wa_link, '_blank');
-        alert('O WhatsApp Web foi aberto. Confirme o envio da mensagem.');
-      } else {
-        alert('Mensagem enviada automaticamente!');
       }
 
-      // Atualizar contador
       document.getElementById('total-sent').textContent =
         parseInt(document.getElementById('total-sent').textContent) + 1;
     } else {
