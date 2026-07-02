@@ -264,67 +264,64 @@ function abrirQRCode() {
 }
 
 // Send automatically via WhatsApp Web
-async function enviarAutomatico() {
-  if (!selectedMessage || !selectedProspect) {
-    console.error('Dados inválidos:', { selectedMessage, selectedProspect });
-    alert('Erro ao enviar mensagem');
+function enviarAutomatico() {
+  console.log('🚀 ENVIARAUTOMATICO CHAMADO');
+  console.log('selectedMessage:', selectedMessage);
+  console.log('selectedProspect:', selectedProspect);
+
+  if (!selectedMessage) {
+    alert('Selecione uma mensagem primeiro');
     return;
   }
 
-  console.log('=== ENVIAR WHATSAPP ===');
-  console.log('Telefone:', selectedProspect.whatsapp);
-  console.log('Mensagem:', selectedMessage);
-  console.log('Prospect ID:', selectedProspect.id);
+  if (!selectedProspect || !selectedProspect.whatsapp) {
+    alert('Prospect sem número de WhatsApp');
+    return;
+  }
 
-  try {
-    const payload = {
-      phone: selectedProspect.whatsapp,
-      message: selectedMessage,
-      prospect_id: selectedProspect.id
-    };
+  const phone = selectedProspect.whatsapp;
+  const message = selectedMessage;
+  const prospectId = selectedProspect.id;
 
-    console.log('Enviando payload:', payload);
+  console.log('📱 Telefone:', phone);
+  console.log('💬 Mensagem:', message);
+  console.log('🆔 Prospect ID:', prospectId);
 
-    const response = await fetch('/prospeccao/enviar-whatsapp-auto', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+  closeModal('modal-escolher-envio');
 
-    console.log('Status da resposta:', response.status);
-    const data = await response.json();
-    console.log('Dados da resposta:', data);
+  fetch('/prospeccao/enviar-whatsapp-auto', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      phone: phone,
+      message: message,
+      prospect_id: prospectId
+    })
+  })
+  .then(response => {
+    console.log('✅ Resposta recebida, status:', response.status);
+    return response.json();
+  })
+  .then(data => {
+    console.log('📦 Dados:', data);
 
     if (data.success && data.wa_link) {
-      closeModal('modal-escolher-envio');
+      console.log('🔗 Link WhatsApp:', data.wa_link);
 
-      console.log('✅ Link WhatsApp gerado:', data.wa_link);
-
-      // Cria um elemento <a> e clica nele
-      const linkElement = document.createElement('a');
-      linkElement.href = data.wa_link;
-      linkElement.target = '_blank';
-      linkElement.rel = 'noopener noreferrer';
-      document.body.appendChild(linkElement);
-
-      console.log('🔗 Elemento criado, clicando...');
-
-      linkElement.click();
-
-      setTimeout(() => {
-        document.body.removeChild(linkElement);
-      }, 100);
+      // Abre direto
+      window.open(data.wa_link, '_blank');
+      console.log('🎉 Abriu WhatsApp');
 
       document.getElementById('total-sent').textContent =
         parseInt(document.getElementById('total-sent').textContent) + 1;
     } else {
-      console.error('❌ Erro na resposta:', data);
-      alert('Erro: ' + (data.error || 'Falha ao gerar link'));
+      alert('Erro: ' + (data.error || 'Sem link'));
     }
-  } catch (error) {
-    console.error('❌ Erro no fetch:', error);
-    alert('Erro ao enviar mensagem: ' + error.message);
-  }
+  })
+  .catch(error => {
+    console.error('❌ ERRO:', error);
+    alert('Erro: ' + error.message);
+  });
 }
 
 // Copy message to clipboard
