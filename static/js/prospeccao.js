@@ -286,10 +286,20 @@ async function enviarAutomatico() {
     if (data.success && data.wa_link) {
       closeModal('modal-escolher-envio');
 
-      // Abre o link com delay para garantir que funciona
+      console.log('Link WhatsApp:', data.wa_link);
+
+      // Cria um elemento <a> e clica nele (mais confiável)
+      const linkElement = document.createElement('a');
+      linkElement.href = data.wa_link;
+      linkElement.target = '_blank';
+      linkElement.rel = 'noopener noreferrer';
+      document.body.appendChild(linkElement);
+
+      // Força o clique após adicionar ao DOM
       setTimeout(() => {
-        window.location.href = data.wa_link;
-      }, 100);
+        linkElement.click();
+        document.body.removeChild(linkElement);
+      }, 50);
 
       document.getElementById('total-sent').textContent =
         parseInt(document.getElementById('total-sent').textContent) + 1;
