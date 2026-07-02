@@ -2411,10 +2411,12 @@ Gere 3 mensagens WhatsApp. Assinatura: {user_name} - ELEVA 🚀"""
 @app.post("/prospeccao/enviar-whatsapp-auto")
 async def prospeccao_enviar_whatsapp_auto(request: Request):
     """Gera link wa.me e retorna para o usuário abrir."""
+    from urllib.parse import quote
+
     user = require_user(request)
     data = await request.json()
 
-    phone = data.get("phone", "").replace("+", "").replace(" ", "").replace("-", "")
+    phone = data.get("phone", "").replace("+", "").replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     message = data.get("message", "")
     prospect_id = data.get("prospect_id", None)
 
@@ -2425,7 +2427,11 @@ async def prospeccao_enviar_whatsapp_auto(request: Request):
         }, status_code=400)
 
     try:
-        wa_link = f"https://wa.me/{phone}?text={message.replace(' ', '%20').replace('\n', '%0A')}"
+        # Garante formato correto do link wa.me
+        if not phone.startswith("55"):
+            phone = f"55{phone}"
+
+        wa_link = f"https://wa.me/{phone}?text={quote(message)}"
 
         if prospect_id:
             conn = get_db()

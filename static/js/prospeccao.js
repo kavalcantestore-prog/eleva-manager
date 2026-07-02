@@ -283,17 +283,18 @@ async function enviarAutomatico() {
 
     const data = await response.json();
 
-    if (data.success) {
+    if (data.success && data.wa_link) {
       closeModal('modal-escolher-envio');
 
-      if (data.wa_link) {
-        window.open(data.wa_link, '_blank');
-      }
+      // Abre o link com delay para garantir que funciona
+      setTimeout(() => {
+        window.location.href = data.wa_link;
+      }, 100);
 
       document.getElementById('total-sent').textContent =
         parseInt(document.getElementById('total-sent').textContent) + 1;
     } else {
-      alert('Erro: ' + data.error);
+      alert('Erro: ' + (data.error || 'Falha ao gerar link'));
     }
   } catch (error) {
     console.error('Erro:', error);
